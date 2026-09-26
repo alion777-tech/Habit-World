@@ -33,10 +33,10 @@ export default function HomeView({ uid, todos: savedTodos, habits, today, habitT
     {!daily.length && <p className={styles.hint}>{l("今日のHabitはありません。", "No Habits scheduled today.")}</p>}
     <button onClick={onHabit}>{l("Habitを開く", "Open Habits")}{daily.length > 5 && ` (${daily.length})`}</button>
     <h3 style={{ marginTop:24 }}>{l("今日・近日中の重要なToDo", "Today and important upcoming tasks")}</h3>
-    {tasks.slice(0,5).map(t => <div key={t.id} className={`${styles.card} ${styles.row}`}><label className={styles.check}><input type="checkbox" aria-label={t.text} disabled={busy} checked={t.done} onChange={() => void run(() => complete(t.id, !t.done, () => toggleTodo(uid,t.id,t.done)))}/></label><div><span>{t.text}</span><p className={styles.hint}>{t.dueDate || t.startDate}{t.recurrence && " · ↻"}</p></div></div>)}
+    {tasks.slice(0,5).map(t => <div key={t.id} className={`${styles.card} ${styles.row} ${styles.todoCard}`}><label className={styles.check}><input type="checkbox" aria-label={t.text} disabled={busy} checked={t.done} onChange={() => void run(() => complete(t.id, !t.done, () => toggleTodo(uid,t.id,t.done)))}/></label><div><span>{t.text}</span><p className={styles.hint}>{t.dueDate || t.startDate}{t.recurrence && " · ↻"}</p></div></div>)}
     {!tasks.length && <p className={styles.hint}>{l("今日の予定はありません。", "No tasks for today.")}</p>}
     <h3 style={{ marginTop: 24 }}>{l("期限切れのToDo", "Overdue tasks")} · {overdue.length}</h3>
-    {overdue.map(t => <div key={t.id} className={`${styles.card} ${styles.row}`} data-overdue>
+    {overdue.map(t => <div key={t.id} className={`${styles.card} ${styles.row} ${styles.todoCard}`} data-overdue>
       <label className={styles.check}><input type="checkbox" aria-label={t.text} disabled={busy} checked={t.done} onChange={() => void run(() => complete(t.id, !t.done, () => toggleTodo(uid, t.id, t.done)))}/></label>
       <div><span>{t.text}</span><p className={styles.hint}>{l("期限: ", "Due: ")}{t.dueDate}{t.recurrence && " · ↻"}</p></div>
     </div>)}

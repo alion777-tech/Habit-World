@@ -253,14 +253,14 @@ export default function HabitView({
                 borderRadius: 8,
                 background: itemBg,
                 color: textColor,
-                textDecoration: isDoneToday ? "line-through" : "none",
+
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 // Completion colors change in the same frame as the checkbox.
               }}
             >
-              <div style={{ cursor: "pointer", display: "flex", alignItems: "center", flex: 1 }}>
+              <div style={{ cursor: "pointer", display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>
                 <input
                   type="checkbox"
                   checked={isDoneToday}
@@ -293,7 +293,7 @@ export default function HabitView({
                       setEditingId(h.id);
                       setEditingText(h.text);
                     }}
-                    style={{ flex: 1 }}
+                    style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere", textDecoration: isDoneToday ? "line-through" : "none" }}
                   >
                     <div style={{ fontWeight: "bold" }}>{h.text}</div>
                     <div style={{ fontSize: 11, color: isDoneToday ? (isDarkMode ? "#34d399" : "#047857") : (isDarkMode ? "#9ca3af" : "#666"), marginTop: 2 }}>
@@ -303,6 +303,9 @@ export default function HabitView({
                 )}
               </div>
 
+              <span style={{ alignSelf: "flex-end", margin: "0 4px 4px 8px", maxWidth: "40%", fontSize: 11, lineHeight: 1.5, textAlign: "right", color: isDarkMode ? "#d1d5db" : "#64748b" }}>
+                {h.type !== "weekly" ? t("daily") : [...new Set(h.daysOfWeek ?? [])].sort((a, b) => a - b).map(day => t(`days.${day}`)).join("・")}
+              </span>
               <button
                 onClick={() => {
                   if (window.confirm(t("confirmDelete"))) {

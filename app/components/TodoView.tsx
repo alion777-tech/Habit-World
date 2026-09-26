@@ -126,7 +126,7 @@ export default function TodoView({ uid, todos: savedTodos, categories = DEFAULT_
       <button onClick={() => { setCategory(""); setPriority(""); setStatus("open"); setDateFilter(""); setSearch(""); }}>{l("絞り込みを解除", "Clear filters")}</button>
     </div></details>
     <p className={styles.hint}>{filtered.length} {l("件 · ピン留めを先頭に表示", "tasks · Pinned first")}{category && ` · ${categories.find(c => c.id === category) ? name(categories.find(c => c.id === category)!) : l("未分類", "Uncategorized")}`}</p>
-    <ul className={styles.list}>{filtered.slice(0, limit).map(item => <li key={item.id} className={styles.card} data-overdue={isOverdue(item, today)}>
+    <ul className={styles.list}>{filtered.slice(0, limit).map(item => <li key={item.id} className={`${styles.card} ${styles.todoCard}`} data-overdue={isOverdue(item, today)}>
       <div className={styles.row}>
         <label className={styles.check}><input type="checkbox" aria-label={`${item.text}: ${l("完了切替", "toggle completion")}`} checked={item.done} disabled={busy} onChange={() => void run(async () => { if (!await complete(item.id, !item.done, () => toggleTodo(uid, item.id, item.done))) return; if (!item.done) setNotice(l("完了しました。1pt獲得。繰り返しは次回分を作成します。", "Completed. Earned 1pt; repeating tasks create the next occurrence.")); })}/></label>
         <button className={styles.task} onClick={() => { setDraft({ ...item }); setSubtask(""); }}><span style={{ textDecoration: item.done ? "line-through" : "none" }}>{item.pinned && "📌 "}{item.text}</span></button>

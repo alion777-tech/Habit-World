@@ -32,3 +32,12 @@
 .editor form>label {margin:12px 0}
 .footer {display:flex;gap:8px;position:sticky;bottom:-18px;background:var(--surface);padding:12px 0;flex-wrap:wrap}
 .meta[data-shopping=true] span:first-child:not([data-high=true]) {display:none}
+
+/* Compact task cards in both the task list and home. */
+.todoCard {padding:4px 8px;margin:6px 0}
+.todoCard .row {margin:0;gap:4px}
+.todoCard .meta {gap:4px;padding:0 8px 2px}
+.todoCard .meta span {padding:1px 5px}
+.todoCard .hint {margin:0;line-height:1.4}
+.todoCard>p {margin:4px 8px;font-size:12px}
+.todoCard>div {min-width:0;overflow-wrap:anywhere}
