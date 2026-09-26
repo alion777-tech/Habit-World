@@ -1,0 +1,49 @@
+# 妖精店 商品設定表
+
+この表がアプリの設定元です。初期パーツは付属品として販売中を no にしています。衣装・着替え商品は今回は無料です。
+
+| ID | 商品名 | 種別 | 価格（コイン） | 効果 | 効果量 | 対象 | 販売中 | 説明 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| closet | はじまりのクローゼット | closet | 0 | none | 0 | - | yes | 初期パーツ付き。着替えと試着室を解禁します。 |
+| avatar-base-gentle | やさしい顔 | avatar | 0 | none | 0 | base:gentle | no | アバタールのやさしい顔。 |
+| avatar-base-boy | きりっとした顔 | avatar | 0 | none | 0 | base:boy | no | アバタールのきりっとした顔。 |
+| avatar-base-anime | アニメ風の顔 | avatar | 0 | none | 0 | base:anime | no | アバタールのアニメ風の顔。 |
+| avatar-base-happy | にっこり笑顔 | avatar | 0 | none | 0 | base:happy | no | アバタールのにっこり笑顔。 |
+| avatar-hair-starter-short | はじまりのショート | avatar | 0 | none | 0 | hair:starter-short | no | アバタールのはじまりのショート。 |
+| avatar-hair-starter-bob | はじまりのボブ | avatar | 0 | none | 0 | hair:starter-bob | no | アバタールのはじまりのボブ。 |
+| avatar-hair-long | ウェーブロング | avatar | 0 | none | 0 | hair:long | yes | アバタールのウェーブロング。 |
+| avatar-hair-twintail | ツインテール | avatar | 0 | none | 0 | hair:twintail | yes | アバタールのツインテール。 |
+| avatar-hair-spiky | ふんわりショート | avatar | 0 | none | 0 | hair:spiky | yes | アバタールのふんわりショート。 |
+| avatar-hair-straight | ストレートロング | avatar | 0 | none | 0 | hair:straight | yes | アバタールのストレートロング。 |
+| avatar-accessory-none | 飾りなし | avatar | 0 | none | 0 | accessory:none | no | アバタールの飾りなし。 |
+| avatar-accessory-cat | 猫耳 | avatar | 0 | none | 0 | accessory:cat | yes | アバタールの猫耳。 |
+| avatar-accessory-dog | 犬耳 | avatar | 0 | none | 0 | accessory:dog | yes | アバタールの犬耳。 |
+| avatar-accessory-rabbit | うさ耳 | avatar | 0 | none | 0 | accessory:rabbit | yes | アバタールのうさ耳。 |
+| avatar-accessory-crown | 王冠 | avatar | 0 | none | 0 | accessory:crown | yes | アバタールの王冠。 |
+| avatar-accessory-flowers | 花冠 | avatar | 0 | none | 0 | accessory:flowers | yes | アバタールの花冠。 |
+| avatar-accessory-hairpin | 花のかんざし | avatar | 0 | none | 0 | accessory:hairpin | yes | アバタールの花のかんざし。 |
+| avatar-accessory-antenna | 蝶の触角飾り | avatar | 0 | none | 0 | accessory:antenna | yes | アバタールの蝶の触角飾り。 |
+| avatar-accessory-butterfly | 蝶の髪飾り | avatar | 0 | none | 0 | accessory:butterfly | yes | アバタールの蝶の髪飾り。 |
+| avatar-accessory-tiara | 真珠のティアラ | avatar | 0 | none | 0 | accessory:tiara | yes | アバタールの真珠のティアラ。 |
+| avatar-accessory-starter-antenna | はじまりの触角 | avatar | 0 | none | 0 | accessory:starter-antenna | no | アバタールのはじまりの触角。 |
+| avatar-outfit-starter-green | はじまりの若草服 | avatar | 0 | none | 0 | outfit:starter-green | no | アバタールのはじまりの若草服。 |
+| avatar-outfit-starter-pink | はじまりのピンクドレス | avatar | 0 | none | 0 | outfit:starter-pink | no | アバタールのはじまりのピンクドレス。 |
+| avatar-outfit-royal-dress | 王家のドレス | avatar | 0 | none | 0 | outfit:royal-dress | yes | アバタールの王家のドレス。 |
+| avatar-outfit-leaf-dress | 若葉のドレス | avatar | 0 | none | 0 | outfit:leaf-dress | yes | アバタールの若葉のドレス。 |
+| avatar-outfit-gothic | 深紅のドレス | avatar | 0 | none | 0 | outfit:gothic | yes | アバタールの深紅のドレス。 |
+| avatar-outfit-petal | 花びらのドレス | avatar | 0 | none | 0 | outfit:petal | yes | アバタールの花びらのドレス。 |
+| avatar-outfit-leaf | 森の妖精 | avatar | 0 | none | 0 | outfit:leaf | yes | アバタールの森の妖精。 |
+| avatar-outfit-star | 星空のドレス | avatar | 0 | none | 0 | outfit:star | yes | アバタールの星空のドレス。 |
+| avatar-outfit-prince | 王子の衣装 | avatar | 0 | none | 0 | outfit:prince | yes | アバタールの王子の衣装。 |
+| avatar-outfit-ranger | 森の旅人 | avatar | 0 | none | 0 | outfit:ranger | yes | アバタールの森の旅人。 |
+| avatar-outfit-coat | 冒険家のコート | avatar | 0 | none | 0 | outfit:coat | yes | アバタールの冒険家のコート。 |
+| avatar-outfit-bard | 吟遊詩人 | avatar | 0 | none | 0 | outfit:bard | yes | アバタールの吟遊詩人。 |
+| avatar-outfit-armor | 騎士の鎧 | avatar | 0 | none | 0 | outfit:armor | yes | アバタールの騎士の鎧。 |
+| avatar-outfit-wizard | 星読みのローブ | avatar | 0 | none | 0 | outfit:wizard | yes | アバタールの星読みのローブ。 |
+| avatar-wings-starter-rainbow | はじまりの虹色の羽 | avatar | 0 | none | 0 | wings:starter-rainbow | no | アバタールのはじまりの虹色の羽。 |
+| avatar-wings-butterfly | 蝶の羽 | avatar | 0 | none | 0 | wings:butterfly | yes | アバタールの蝶の羽。 |
+| avatar-wings-leaf | 若葉の羽 | avatar | 0 | none | 0 | wings:leaf | yes | アバタールの若葉の羽。 |
+| avatar-wings-light | 光の羽 | avatar | 0 | none | 0 | wings:light | yes | アバタールの光の羽。 |
+| avatar-wings-crystal | 氷晶の羽 | avatar | 0 | none | 0 | wings:crystal | yes | アバタールの氷晶の羽。 |
+| avatar-wings-dragonfly | 妖精の羽 | avatar | 0 | none | 0 | wings:dragonfly | yes | アバタールの妖精の羽。 |
+| avatar-wings-night | 星空の羽 | avatar | 0 | none | 0 | wings:night | yes | アバタールの星空の羽。 |

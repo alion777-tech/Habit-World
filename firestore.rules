@@ -1,0 +1,120 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+
+    function isTestAdmin(uid) {
+      return isOwner(uid)
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && exists(/databases/$(database)/documents/testAdmins/$(uid))
+        && get(/databases/$(database)/documents/testAdmins/$(uid)).data.enabled == true
+        && get(/databases/$(database)/documents/testAdmins/$(uid)).data.label in ['TEST01', 'TEST02', 'TEST03'];
+    }
+    function testModeEnabled(uid) {
+      return isTestAdmin(uid)
+        && exists(/databases/$(database)/documents/testSessions/$(uid))
+        && get(/databases/$(database)/documents/testSessions/$(uid)).data.enabled == true;
+    }
+    // Membership is managed only through the trusted Firebase console/Admin SDK.
+    // These paths are outside users/{uid}, whose owner writes cannot grant roles.
+    match /testAdmins/{uid} {
+      allow get: if isOwner(uid) && request.auth.token.firebase.sign_in_provider == 'google.com';
+      allow list, write: if false;
+    }
+    match /testSessions/{uid} {
+      allow get: if isTestAdmin(uid);
+      allow create, update: if isTestAdmin(uid)
+        && request.resource.data.keys().hasAll(['enabled', 'dayOffset'])
+        && request.resource.data.keys().hasOnly(['enabled', 'dayOffset'])
+        && request.resource.data.enabled is bool
+        && request.resource.data.dayOffset is int
+        && request.resource.data.dayOffset >= -3650
+        && request.resource.data.dayOffset <= 3650
+        && (request.resource.data.enabled || request.resource.data.dayOffset == 0);
+      allow delete: if isTestAdmin(uid);
+    }
+    match /testWorkspaces/{uid} {
+      allow get, create, update, delete: if testModeEnabled(uid);
+    }
+
+    // 相手(uid)のfriendsに自分がいるか（友達判定）
+    function isFriend(uid) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(uid)/friends/$(request.auth.uid));
+    }
+
+    // デフォルト拒否
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===== 検索・他人表示用 公開プロフィール =====
+    // ここだけ検索で読む。公開して良い情報だけ置く（表示名・性別・夢・公開フラグ等）
+    match /publicUsers/{uid} {
+      allow read: if signedIn();        // アプリ利用者（ログイン者）なら検索できる
+      allow create, update, delete: if isOwner(uid);
+    }
+
+    // ===== 本人領域（プライベート）=====
+    match /users/{uid} {
+      // users本体は本人だけ（ここを開けないのが安全の核）
+      allow read, write: if isOwner(uid);
+
+      // ログイン状況っぽい表示（簡易）: users/{uid}/public/status
+      match /public/status {
+        allow read: if signedIn();      // 表示したいなら
+        allow write: if isOwner(uid);   // 更新は本人だけ
+      }
+
+      // 申請（受信箱方式）: users/{toUid}/friendRequests/{reqId}
+      match /friendRequests/{reqId} {
+        allow read, delete: if isOwner(uid);
+
+        // 申請作成（最低限の整合性）
+        allow create: if signedIn()
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.toUid == uid
+          && request.resource.data.status == "pending";
+
+        // 承認/拒否は受信者だけ
+        allow update: if isOwner(uid);
+      }
+
+      // friends：本人だけが作る/消す（勝手に友達化できない）
+      match /friends/{friendUid} {
+        allow read: if isOwner(uid);
+        allow create, update, delete: if isOwner(uid);
+      }
+
+      // Goal details are private. Only publicUsers.publicGoals exposes the top three.
+      match /goals/{goalId} {
+        allow create, update, delete: if isOwner(uid);
+
+        allow read: if isOwner(uid);
+      }
+
+      // habits/todos：本人だけ（公開したければgoalsと同じvisibility方式にする）
+      match /habits/{habitId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /todos/{todoId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      // したい100のこと：本人のリストだけ読み書きできる。
+      match /bucketList/main {
+        allow read, write: if isOwner(uid);
+      }
+
+      // 通知（最小）：本人だけ読む/消す。作成は本人のみ（将来Functions化推奨）
+      match /notifications/{notiId} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid);
+        allow update: if false;
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {sync}=require('./sync-shop-config.cjs');
+const dir=path.resolve('output/shop-config-test');fs.mkdirSync(dir,{recursive:true});
+for(const file of ['elf.md','dwarf.md','fairy.md','materials.md','buyback.md'])fs.copyFileSync(path.join('docs/habit-world/shops',file),path.join(dir,file));
+const target=path.join(dir,'catalog.json'),elf=path.join(dir,'elf.md'),original=fs.readFileSync(elf,'utf8');
+fs.writeFileSync(elf,original.replace('| 10 | health | 20 |','| 17 | health | 35 |'));
+const changed=sync(dir,target).products.find(p=>p.id==='elf-potion');assert.equal(changed.price,17);assert.equal(changed.amount,35);
+const valid=fs.readFileSync(target,'utf8');fs.writeFileSync(elf,original.replace('| 10 | health | 20 |','| -1 | health | 20 |'));
+assert.throws(()=>sync(dir,target));assert.equal(fs.readFileSync(target,'utf8'),valid,'invalid setting preserves the last valid catalog');
+fs.writeFileSync(elf,original.replace('| yes |','| no |'));assert.equal(sync(dir,target).products.find(p=>p.id==='elf-potion').enabled,false);
+console.log('Settings tables: price/effect changes, availability changes and invalid-value rejection passed.');

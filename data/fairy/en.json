@@ -1,0 +1,11 @@
+{
+  "normal": ["I'm here with you.", "How are you feeling?", "Let's take our time.", "Want a little break?", "What's on your mind?", "One small step is enough."],
+  "morning": ["Good morning!", "Did you sleep well?", "What shall we start with?"],
+  "night": ["Good evening.", "Time to unwind?", "Rest whenever you need to."],
+  "lateNight": ["It's getting late.", "We can pick this up after some rest.", "Feeling sleepy?"],
+  "habitCompleted": ["You did it!", "One step finished.", "How does that feel?"],
+  "allDone": ["Today's habits are all done!", "Time to enjoy a breather.", "Look at what you did today."],
+  "goalCompleted": ["You reached your goal!", "Let's celebrate this moment.", "How does it feel to be here?"],
+  "levelUp": ["A new level!", "Your steps have added up.", "A little celebration?"],
+  "dreamAchieved": ["Your dream came true.", "I'm happy to share this moment.", "Take your time to enjoy this."]
+}

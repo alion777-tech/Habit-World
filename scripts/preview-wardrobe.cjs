@@ -1,0 +1,25 @@
+// Isolated connected UI fixture. Real account APIs are replaced with explicit failures.
+const fs=require('fs'),path=require('path'),webpack=require('webpack'),http=require('http');
+const config=require('./sync-shop-config.cjs');config.sync();
+const root=path.resolve(__dirname,'..'),dir=path.join(root,'output/avatar-preview');fs.mkdirSync(dir,{recursive:true});
+fs.writeFileSync(path.join(dir,'loader.cjs'),`module.exports=function(source){return require('typescript').transpileModule(source,{compilerOptions:{jsx:4,module:99,target:7,esModuleInterop:true}}).outputText}`);
+fs.writeFileSync(path.join(dir,'image.js'),`const React=require('react');module.exports=function({unoptimized,priority,...props}){return React.createElement('img',props)}`);
+fs.writeFileSync(path.join(dir,'link.js'),`const React=require('react');module.exports=function(props){return React.createElement('a',props)}`);
+fs.writeFileSync(path.join(dir,'access.js'),`exports.useTestAccess=()=>{throw Error('Authentication is unavailable in this isolated UI fixture')}`);
+fs.writeFileSync(path.join(dir,'actions.js'),`const fail=()=>{throw Error('Real account actions are unavailable in the preview')};exports.syncFairyRoom=fail;exports.tradeFairyRoom=fail;exports.nameFairy=fail;`);
+fs.writeFileSync(path.join(dir,'intl.js'),`exports.useLocale=()=> 'ja';`);
+fs.writeFileSync(path.join(dir,'css-loader.cjs'),`module.exports=function(source){const p=require('path'),tree=require('postcss').parse(source),prefix=p.basename(this.resourcePath).replace(/[^a-zA-Z]/g,'')+'_',classes={};tree.walkRules(rule=>{rule.selector=rule.selector.replace(/\\.([a-zA-Z_][\\w-]*)/g,(_,name)=>{classes[name]=prefix+name;return '.'+prefix+name;});});return 'const style=document.createElement("style");style.textContent='+JSON.stringify(tree.toString())+';document.head.appendChild(style);module.exports='+JSON.stringify(classes);}`);
+fs.writeFileSync(path.join(dir,'entry.tsx'),`import React from 'react';import{createRoot}from'react-dom/client';import{WardrobeStudio}from'../../app/(root)/avatar/wardrobe-studio';import Connected from '../../scripts/fixtures/connected-avatar';const params=new URLSearchParams(location.search),entry=params.get('entry'),scenario=params.get('scenario');const uid=scenario==='first-closet'?'isolated-preview-first-closet':scenario==='qa'?'isolated-preview-qa':'isolated-preview';createRoot(document.getElementById('root')!).render(entry==='room'?<Connected uid={uid}/>:entry?<WardrobeStudio uid={uid} initialMode={entry==='shops'?'shops':'closet'} onClose={()=>location.href='/?entry=room'+(scenario?'&scenario='+scenario:'')}/>:<main style={{maxWidth:600,margin:'80px auto',padding:30,fontFamily:'serif'}}><h1>アバタール · 動作確認</h1><p>実際のアカウントと分離した確認画面です。</p><p><a href="/?entry=room">妖精の部屋・ショップ・冒険を確認 →</a></p><p><a href="/?entry=closet">クローゼットへ →</a></p><p><a href="/?entry=shops">アイテムショップへ →</a></p><p><a href="/?entry=room&scenario=first-closet">初回購入から確認 →</a></p></main>);`);
+fs.writeFileSync(path.join(dir,'index.html'),'<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>アバタール 動作確認</title><style>*{box-sizing:border-box}body{margin:0}button{font:inherit}</style><div id="root"></div><script src="/bundle.js"></script></html>');
+const compiler=webpack({mode:'development',entry:path.join(dir,'entry.tsx'),output:{path:dir,filename:'bundle.js'},resolve:{extensions:['.tsx','.ts','.js','.json'],alias:{'next/image':path.join(dir,'image.js'),'next/link':path.join(dir,'link.js'),'next-intl':path.join(dir,'intl.js'),'@/hooks/useTestAccess':path.join(dir,'access.js'),'@/lib/fairyRoomActions':path.join(dir,'actions.js'),'@/lib/fairyProgressActions':path.join(dir,'actions.js'),'@':root}},module:{rules:[{test:/\.tsx?$/,exclude:/node_modules/,use:path.join(dir,'loader.cjs')},{test:/\.css$/,use:path.join(dir,'css-loader.cjs')}]},devtool:false});
+function report(err,stats){if(err||stats.hasErrors()){console.error(err||stats.toString({all:false,errors:true}));return false;}return true;}
+if(process.argv.includes('--build-only'))compiler.run((err,stats)=>{if(report(err,stats))console.log('Connected preview bundle updated');else process.exitCode=1;compiler.close(()=>{});});
+else{
+ compiler.watch({},report);config.watch();
+ http.createServer((req,res)=>{
+  const url=new URL(req.url,'http://127.0.0.1');const isAsset=['/avatar/','/world/'].some(prefix=>url.pathname.startsWith(prefix));
+  const file=isAsset?path.join(root,'public',url.pathname):path.join(dir,url.pathname==='/'?'index.html':url.pathname);
+  if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404);res.end();return;}
+  res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type',({'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp'})[path.extname(file)]||'application/octet-stream');fs.createReadStream(file).pipe(res);
+ }).listen(Number(process.argv.find(a=>a.startsWith('--port='))?.split('=')[1]??3001),'127.0.0.1',()=>console.log('Connected preview server ready'));
+}

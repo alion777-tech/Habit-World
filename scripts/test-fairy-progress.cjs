@@ -1,0 +1,32 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const ts = require('typescript');
+const vm = require('node:vm');
+const context = { exports: {} };
+vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/fairyProgressModel.ts','utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, context);
+const advance = context.exports.advanceFairyLogin;
+let profile = { fairy: { status:'egg', eggReceivedAt:'2026-09-01', appearance:'basic' }, bonusPoints:70 };
+for(let day=1;day<=7;day++) {
+ const today=`2026-09-0${day}`, yesterday=day===1?'2026-08-31':`2026-09-0${day-1}`;
+ profile={...profile,...advance(profile,today,yesterday)};
+ assert.equal(profile.stats.continuousLoginDays,day);
+ const retry={...profile,...advance(profile,today,yesterday)};
+ assert.equal(retry.stats.continuousLoginDays,day);
+ assert.equal(retry.bonusPoints,profile.bonusPoints);
+ if(day<7)assert.equal(profile.fairy.status,'egg');
+}
+assert.equal(profile.fairy.status,'naming');
+assert.equal(profile.bonusPoints,170);
+assert.equal(profile.specialPointHistory.length,1);
+assert.equal(profile.specialPointHistory[0].date,'2026-09-07');
+const later={...profile,...advance(profile,'2026-09-09','2026-09-08')};
+assert.equal(later.stats.continuousLoginDays,1);
+assert.equal(later.fairy.status,'naming');
+assert.equal(later.bonusPoints,170);
+const broken=advance({fairy:{status:'egg'},loginRewardDate:'2026-09-05',stats:{continuousLoginDays:6}},'2026-09-07','2026-09-06');
+assert.equal(broken.stats.continuousLoginDays,1);assert.equal(broken.fairy,undefined);
+const noEgg=advance({stats:{continuousLoginDays:6},loginRewardDate:'2026-09-06'},'2026-09-07','2026-09-06');
+assert.equal(noEgg.bonusPoints,undefined);
+const named=advance({...profile,fairy:{...profile.fairy,status:'ready',name:'ミント'}},'2026-09-08','2026-09-07');
+assert.equal(named.fairy,undefined);assert.equal(named.bonusPoints,undefined);
+console.log('Fairy: seven days, same-day retry, gaps, missing egg, pending naming and duplicate rewards passed.');

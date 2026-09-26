@@ -1,0 +1,41 @@
+'use client';
+import {useEffect,useRef,useState} from 'react';
+import Link from 'next/link';
+import {ALL_VISIBLE,DEFAULT,HAIRS,LEGACY_KEY,NONE_VISIBLE,OPTIONS,OUTFITS,STORAGE_KEY,WINGS,describe,equip,layers,migrate,type Avatar,type Category,type Layer,type Visibility} from './model';
+import s from './studio.module.css';
+const CATEGORIES:{id:Category;name:string;icon:string;en:string}[]=[{id:'hair',name:'髪型',icon:'❧',en:'HAIR'},{id:'outfit',name:'服',icon:'♧',en:'CLOTHES'},{id:'wings',name:'羽',icon:'❋',en:'WINGS'},{id:'eyes',name:'目',icon:'◉',en:'EYES'},{id:'brows',name:'眉',icon:'⌒',en:'BROWS'},{id:'nose',name:'鼻',icon:'·',en:'NOSE'},{id:'mouth',name:'口',icon:'◡',en:'MOUTH'},{id:'cheeks',name:'頬',icon:'❀',en:'CHEEKS'}];
+function layerStyle(l:Layer){return {left:`${l.x/5}%`,top:`${l.y/6}%`,width:`${l.width/5}%`,height:`${l.height/6}%`,backgroundImage:l.tint ? `radial-gradient(ellipse 18% 45% at 20% 50%,${l.tint},${l.tint}00),radial-gradient(ellipse 18% 45% at 80% 50%,${l.tint},${l.tint}00)` : `url(${l.src})`,backgroundSize:`${l.crop ? l.crop.total/l.crop.width*100 : l.columns*100}% ${(l.rows??1)*100}%`,backgroundPosition:`${l.crop ? l.crop.x/(l.crop.total-l.crop.width)*100 : l.columns>1 ? l.column/(l.columns-1)*100:0}% ${(l.rows??1)>1?(l.row??0)/((l.rows??1)-1)*100:0}%`};}
+export function AvatarFigure({avatar,visible=ALL_VISIBLE}:{avatar:Avatar;visible?:Visibility}){
+ return <div className={s.figure} role="img" aria-label={describe(avatar)}>{layers(avatar,visible).map(l=><div key={l.id} data-layer={l.id} data-asset={`${l.src}#${l.column}:${l.row??0}:${l.tint??""}`} className={s.layer} style={layerStyle(l)}/>)}</div>;
+}
+export default function AvatarStudio(){
+ const [avatar,setAvatar]=useState<Avatar>(DEFAULT),[saved,setSaved]=useState<Avatar|null>(null);
+ const [category,setCategory]=useState<Category>('hair'),[visible,setVisible]=useState<Visibility>(ALL_VISIBLE);
+ const [ready,setReady]=useState(false),[notice,setNotice]=useState(''),[night,setNight]=useState(false),[exporting,setExporting]=useState(false);
+ const dialog=useRef<HTMLDialogElement>(null);
+ useEffect(()=>{try{const raw=localStorage.getItem(STORAGE_KEY)??localStorage.getItem(LEGACY_KEY);if(raw){const v=migrate(JSON.parse(raw));if(v){setAvatar(v);setSaved(v);}else setNotice('保存したデータを読み込めなかったため、最初の姿で開きました。');}}catch{setNotice('このブラウザーでは保存データを読み込めませんでした。');}setReady(true);},[]);
+ function select(id:string){setAvatar(a=>equip(a,category,id));setVisible(v=>({...v,[category]:true}));setNotice(`${CATEGORIES.find(c=>c.id===category)?.name}だけを変更しました。`);}
+ function randomize(){setAvatar(a=>({...a,hair:HAIRS[Math.floor(Math.random()*HAIRS.length)].id,outfit:OUTFITS[Math.floor(Math.random()*OUTFITS.length)].id,wings:WINGS[Math.floor(Math.random()*WINGS.length)].id}));setVisible(ALL_VISIBLE);setNotice('新しい組み合わせに出会いました。');}
+ function decide(){const next={...avatar,name:avatar.name.trim()};if(!next.name)return;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(next));setAvatar(next);setSaved(next);setVisible(ALL_VISIBLE);setNotice('このブラウザーに保存しました。');dialog.current?.showModal();}catch{setNotice('保存できませんでした。ブラウザーの保存設定をご確認ください。');}}
+ async function exportPng(){setExporting(true);try{const canvas=document.createElement('canvas');canvas.width=1000;canvas.height=1200;const ctx=canvas.getContext('2d');if(!ctx)throw Error('Canvas unavailable');ctx.scale(2,2);for(const l of layers(avatar)){if(l.tint){for(const c of [.2,.8]){ctx.save();ctx.translate(l.x+l.width*c,l.y+l.height/2);ctx.scale(l.width*.18,l.height*.45);const g=ctx.createRadialGradient(0,0,0,0,0,1);g.addColorStop(0,l.tint);g.addColorStop(1,l.tint+'00');ctx.fillStyle=g;ctx.fillRect(-1,-1,2,2);ctx.restore();}continue;}const img=new Image();img.src=l.src;await img.decode();const w=l.crop?.width ?? img.naturalWidth/l.columns;const h=img.naturalHeight/(l.rows??1);ctx.drawImage(img,l.crop?.x ?? w*l.column,(l.row??0)*h,w,h,l.x,l.y,l.width,l.height);}const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('Export failed')),'image/png'));const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='habit-world-mannequin-fairy.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);setNotice('PNGのダウンロードを開始しました。');}catch{setNotice('PNGを作成できませんでした。もう一度お試しください。');}finally{setExporting(false);}}
+ return <main className={`${s.studio} ${night?s.night:''}`}>
+ <header className={s.header}><Link href="/world" className={s.brand}>✧ <span>HABIT WORLD<small>ハビットワールド</small></span></Link><span className={s.edition}>AVATAR LAB · 03</span><Link href="/world" className={s.back}>世界へ戻る ↗</Link></header>
+ <div className={s.heading}><span>THE FAIRY ATELIER</span><h1>妖精のクローゼット</h1><p>同じこの子に、新しいお気に入りを。</p></div>
+ <div className={s.workspace}>
+ <section className={s.preview} aria-label="妖精の全身プレビュー"><div className={s.sceneLabel}>YOUR COMPANION <small>はじまりの妖精</small></div><div className={s.halo}/><div className={s.orbit}/><div className={s.character}><AvatarFigure avatar={avatar} visible={visible}/></div><div className={s.nameplate}><span>あなたと夢を叶える相棒</span><h2>{avatar.name||'名前をつけてね'}</h2></div><div className={s.previewTools}><button onClick={()=>setNight(v=>!v)} aria-pressed={night}>{night?'☼ 朝の光':'☾ 夜の光'}</button><button onClick={randomize}>⤨ おまかせ</button></div></section>
+ <section className={s.editor} aria-label="着せ替えメニュー"><div className={s.editorHeading}><span>DRESS YOUR FAIRY</span><h2>ひとつずつ、あなたらしく。</h2><p>髪・服・羽・顔を自由に組み合わせよう。</p></div>
+ <nav className={s.tabs} aria-label="着せ替えカテゴリ">{CATEGORIES.map(c=><button key={c.id} aria-pressed={category===c.id} onClick={()=>setCategory(c.id)}><span>{c.icon}</span>{c.name}<small>{c.en}</small></button>)}</nav>
+ <div className={s.options}>{OPTIONS[category].map((o,i)=>{const l=layers(equip(avatar,category,o.id)).find(x=>x.id===category)??{id:category,src:'',column:0,columns:1,x:0,y:0,width:500,height:600,tint:'#ffffff00'};return <button key={o.id} className={s.option} aria-pressed={avatar[category]===o.id} onClick={()=>select(o.id)}><div className={`${s.thumb} ${category==='hair'?s.hairThumb:category==='outfit'?s.clothThumb:category==='wings'?s.wingThumb:s.faceThumb}`} aria-hidden="true"><div className={s.thumbBoard}><div className={s.layer} style={layerStyle(l)}/></div></div><span><small>0{i+1}</small><strong>{o.name}</strong></span><b>{avatar[category]===o.id?'✓':'＋'}</b></button>;})}</div>
+ <label className={s.nameInput}>この子の名前<input maxLength={20} value={avatar.name} onChange={e=>setAvatar(a=>({...a,name:e.target.value}))}/></label>
+ <button className={s.decide} disabled={!ready||!avatar.name.trim()} onClick={decide}>この姿に決定する <span>✧</span></button>
+ <div className={s.secondary}><button onClick={()=>{setAvatar(DEFAULT);setVisible(ALL_VISIBLE);setNotice('編集中の姿を初期化しました。保存した姿は残っています。');}}>初期状態に戻す</button><button disabled={!saved} onClick={()=>{if(saved){setAvatar(saved);setVisible(ALL_VISIBLE);setNotice('保存した姿を呼び出しました。');}}}>保存した姿を呼び出す</button></div><p role="status" className={s.notice}>{notice||'この子と一緒に、夢を叶えていこう。'}</p>
+ </section></div>
+ <section className={s.inspector} aria-label="パーツの独立性を確認"><div><span>PARTS CHECK</span><h2>重なりを、見てみよう。</h2><p>輪郭と身体は一枚。目・眉・鼻・口・頬は独立しています。表示を切り替えて確認できます。</p></div><div className={s.visibility}><span className={s.fixed}>✓ マネキン（固定）</span>{CATEGORIES.map(c=><label key={c.id}><input type="checkbox" checked={visible[c.id]} onChange={e=>setVisible(v=>({...v,[c.id]:e.target.checked}))}/>{c.name}</label>)}<button onClick={()=>setVisible(NONE_VISIBLE)}>マネキンだけ見る</button><button onClick={()=>setVisible(ALL_VISIBLE)}>すべて表示</button></div><small>表示確認は保存内容に影響しません。決定・PNG保存では選択中の全パーツを表示します。</small></section>
+ <footer className={s.footer}><span>1 MANNEQUIN ＋ INDEPENDENT FACE PARTS</span><span>性別を決めず、自由に着せ替え · 独立パーツ検証版</span></footer>
+ <dialog ref={dialog} className={s.modal}><span>OUR STORY BEGINS</span><h2>{avatar.name}と、夢のつづきへ。</h2><div className={s.modalFairy}><AvatarFigure avatar={avatar}/></div><p>「これから、一緒に歩いていこう。」</p><small>このブラウザーに保存しました。</small><button className={s.decide} onClick={exportPng} disabled={exporting}>{exporting?'画像を準備中…':'妖精を透過PNGで保存 ↓'}</button><button className={s.close} onClick={()=>dialog.current?.close()}>クローゼットへ戻る</button><p role="status">{notice}</p></dialog>
+ </main>;
+}
+
+
+
+

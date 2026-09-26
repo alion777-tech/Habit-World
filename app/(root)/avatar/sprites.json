@@ -1,0 +1,303 @@
+{
+  "hair-long": {
+    "src": "/avatar/v2/parts/hair-long.png",
+    "x": 77.5,
+    "y": 65,
+    "width": 345,
+    "height": 350
+  },
+  "hair-bob": {
+    "src": "/avatar/v2/parts/hair-bob.png",
+    "x": 82.5,
+    "y": 65,
+    "width": 335,
+    "height": 265
+  },
+  "hair-short": {
+    "src": "/avatar/v2/parts/hair-short.png",
+    "x": 127.5,
+    "y": 60,
+    "width": 245,
+    "height": 195
+  },
+  "hair-twintail": {
+    "src": "/avatar/v2/parts/hair-twintail.png",
+    "x": 57.5,
+    "y": 60,
+    "width": 385,
+    "height": 335
+  },
+  "hair-spiky": {
+    "src": "/avatar/v2/parts/hair-spiky.png",
+    "x": 102.5,
+    "y": 40,
+    "width": 295,
+    "height": 280
+  },
+  "hair-straight": {
+    "src": "/avatar/v2/parts/hair-straight.png",
+    "x": 90,
+    "y": 35,
+    "width": 320,
+    "height": 350
+  },
+  "outfit-royal-dress": {
+    "src": "/avatar/v2/parts/outfit-royal-dress.png",
+    "x": 105,
+    "y": 282,
+    "width": 290,
+    "height": 265
+  },
+  "outfit-leaf-dress": {
+    "src": "/avatar/v2/parts/outfit-leaf-dress.png",
+    "x": 105,
+    "y": 282,
+    "width": 290,
+    "height": 265
+  },
+  "outfit-gothic": {
+    "src": "/avatar/v2/parts/outfit-gothic.png",
+    "x": 105,
+    "y": 282,
+    "width": 290,
+    "height": 265
+  },
+  "outfit-petal": {
+    "src": "/avatar/v2/parts/outfit-petal.png",
+    "x": 105,
+    "y": 282,
+    "width": 290,
+    "height": 265
+  },
+  "outfit-leaf": {
+    "src": "/avatar/v2/parts/outfit-leaf.png",
+    "x": 130,
+    "y": 282,
+    "width": 240,
+    "height": 265
+  },
+  "outfit-star": {
+    "src": "/avatar/v2/parts/outfit-star.png",
+    "x": 120,
+    "y": 282,
+    "width": 260,
+    "height": 265
+  },
+  "outfit-prince": {
+    "src": "/avatar/v2/parts/outfit-prince.png",
+    "x": 105,
+    "y": 282,
+    "width": 290,
+    "height": 265
+  },
+  "outfit-ranger": {
+    "src": "/avatar/v2/parts/outfit-ranger.png",
+    "x": 105,
+    "y": 282,
+    "width": 290,
+    "height": 265
+  },
+  "outfit-coat": {
+    "src": "/avatar/v2/parts/outfit-coat.png",
+    "x": 105,
+    "y": 282,
+    "width": 290,
+    "height": 265
+  },
+  "outfit-bard": {
+    "src": "/avatar/v2/parts/outfit-bard.png",
+    "x": 105,
+    "y": 282,
+    "width": 290,
+    "height": 265
+  },
+  "outfit-armor": {
+    "src": "/avatar/v2/parts/outfit-armor.png",
+    "x": 105,
+    "y": 282,
+    "width": 290,
+    "height": 265
+  },
+  "outfit-wizard": {
+    "src": "/avatar/v2/parts/outfit-wizard.png",
+    "x": 105,
+    "y": 282,
+    "width": 290,
+    "height": 265
+  },
+  "wings-butterfly": {
+    "src": "/avatar/v2/parts/wings-butterfly.png",
+    "x": 30,
+    "y": 195,
+    "width": 440,
+    "height": 360
+  },
+  "wings-leaf": {
+    "src": "/avatar/v2/parts/wings-leaf.png",
+    "x": 30,
+    "y": 195,
+    "width": 440,
+    "height": 360
+  },
+  "wings-light": {
+    "src": "/avatar/v2/parts/wings-light.png",
+    "x": 30,
+    "y": 195,
+    "width": 440,
+    "height": 360
+  },
+  "wings-crystal": {
+    "src": "/avatar/v2/parts/wings-crystal.png",
+    "x": 30,
+    "y": 195,
+    "width": 440,
+    "height": 360
+  },
+  "wings-dragonfly": {
+    "src": "/avatar/v2/parts/wings-dragonfly.png",
+    "x": 30,
+    "y": 195,
+    "width": 440,
+    "height": 360
+  },
+  "wings-night": {
+    "src": "/avatar/v2/parts/wings-night.png",
+    "x": 30,
+    "y": 195,
+    "width": 440,
+    "height": 360
+  },
+  "accessory-cat": {
+    "src": "/avatar/v2/parts/accessory-cat.png",
+    "x": 130,
+    "y": 45,
+    "width": 240,
+    "height": 142.89017341040463
+  },
+  "accessory-dog": {
+    "src": "/avatar/v2/parts/accessory-dog.png",
+    "x": 130,
+    "y": 45,
+    "width": 240,
+    "height": 99
+  },
+  "accessory-rabbit": {
+    "src": "/avatar/v2/parts/accessory-rabbit.png",
+    "x": 130,
+    "y": -125,
+    "width": 240,
+    "height": 190.4191616766467
+  },
+  "accessory-crown": {
+    "src": "/avatar/v2/parts/accessory-crown.png",
+    "x": 160,
+    "y": 45,
+    "width": 180,
+    "height": 115.4006968641115
+  },
+  "accessory-flowers": {
+    "src": "/avatar/v2/parts/accessory-flowers.png",
+    "x": 160,
+    "y": 45,
+    "width": 180,
+    "height": 65.5
+  },
+  "accessory-hairpin": {
+    "src": "/avatar/v2/parts/accessory-hairpin.png",
+    "x": 305,
+    "y": 110,
+    "width": 95,
+    "height": 89.26724137931035
+  },
+  "accessory-antenna": {
+    "src": "/avatar/v2/parts/accessory-antenna.png",
+    "x": 130,
+    "y": 45,
+    "width": 240,
+    "height": 187.63636363636363
+  },
+  "accessory-butterfly": {
+    "src": "/avatar/v2/parts/accessory-butterfly.png",
+    "x": 305,
+    "y": 110,
+    "width": 95,
+    "height": 103.33333333333333
+  },
+  "accessory-tiara": {
+    "src": "/avatar/v2/parts/accessory-tiara.png",
+    "x": 160,
+    "y": 45,
+    "width": 180,
+    "height": 136.34877384196184
+  },
+  "base-gentle": {
+    "src": "/avatar/v2/parts/base-gentle.png",
+    "x": 110,
+    "y": 80,
+    "width": 280,
+    "height": 460
+  },
+  "base-boy": {
+    "src": "/avatar/v2/parts/base-boy.png",
+    "x": 110,
+    "y": 80,
+    "width": 280,
+    "height": 460
+  },
+  "base-anime": {
+    "src": "/avatar/v2/parts/base-anime.png",
+    "x": 110,
+    "y": 80,
+    "width": 280,
+    "height": 460
+  },
+  "base-happy": {
+    "src": "/avatar/v2/parts/base-happy.png",
+    "x": 110,
+    "y": 80,
+    "width": 280,
+    "height": 460
+  },
+  "hair-starter-short": {
+    "src": "/avatar/v2/parts/hair-short.png",
+    "x": 127.5,
+    "y": 60,
+    "width": 245,
+    "height": 195
+  },
+  "hair-starter-bob": {
+    "src": "/avatar/v2/parts/hair-starter-bob.png",
+    "x": 82.5,
+    "y": 55,
+    "width": 335,
+    "height": 265
+  },
+  "accessory-starter-antenna": {
+    "src": "/avatar/v2/parts/accessory-starter-antenna.png",
+    "x": 135,
+    "y": -5,
+    "width": 230,
+    "height": 100
+  },
+  "outfit-starter-green": {
+    "src": "/avatar/v2/parts/outfit-starter-green.png",
+    "x": 145,
+    "y": 280,
+    "width": 210,
+    "height": 185
+  },
+  "outfit-starter-pink": {
+    "src": "/avatar/v2/parts/outfit-starter-pink.png",
+    "x": 160,
+    "y": 280,
+    "width": 180,
+    "height": 180
+  },
+  "wings-starter-rainbow": {
+    "src": "/avatar/v2/parts/wings-starter-rainbow.png",
+    "x": 60,
+    "y": 185,
+    "width": 380,
+    "height": 250
+  }
+}

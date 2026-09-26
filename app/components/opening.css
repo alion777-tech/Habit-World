@@ -1,0 +1,49 @@
+.opening {color:#f9f5e4;font-family:inherit}
+.opening-scene {position:fixed;inset:0;z-index:100;background:#071c19;isolation:isolate}
+.opening-art {position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:-1}
+.opening-speaker {position:absolute;right:16px;top:max(14px,env(safe-area-inset-top));z-index:3;background:#102e2ee8;border:1px solid #d6d6a6;border-radius:24px;padding:9px 14px;color:#fff;cursor:pointer;display:flex;gap:8px;align-items:center}
+.opening-speaker span {font-size:11px}
+.main-speaker {position:fixed;top:max(12px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));z-index:90;box-shadow:0 4px 18px #001c2455;min-height:44px}
+.main-speaker:focus-visible {outline:3px solid #f5d995;outline-offset:4px}
+body:not(.opening-guided) .app-shell {background:linear-gradient(#06292133,#06292166),url('/opening/title.jpg') center/cover no-repeat!important}
+body:not(.opening-active) .app-content {padding-top:70px}
+body:not(.opening-guided) .app-panel {backdrop-filter:blur(5px);border:1px solid #d8c89466;box-shadow:0 12px 60px #001d1d66!important}
+.opening-start {position:absolute;bottom:3%;left:50%;transform:translateX(-50%);width:min(94%,560px);text-align:center;padding:14px;border-radius:18px;background:#092822ed;box-shadow:0 0 40px #06221c}
+.opening-start p {margin:0 0 12px;font-size:14px}
+.opening-start small {display:block;margin-top:10px;font-size:11px}
+.opening button:focus-visible {outline:3px solid #f5d995;outline-offset:4px}
+.opening-start button,.opening-actions button {cursor:pointer;border:1px solid #d8c894;background:linear-gradient(120deg,#315b50,#173a35);color:#fff8de;border-radius:24px;padding:10px 24px;font-weight:700}
+.opening-bubble {position:absolute;bottom:5%;left:50%;transform:translateX(-50%);width:min(90%,680px);padding:20px 24px;background:#f7fcf5f2;color:#14392f;border:2px solid #d6c78f;border-radius:24px;box-shadow:0 12px 50px #001c2499}
+.opening-bubble:before {content:"";position:absolute;top:-14px;left:35px;border-left:14px solid transparent;border-right:14px solid transparent;border-bottom:14px solid #d6c78f}
+.opening-caption {display:flex;justify-content:space-between;gap:12px;font-size:12px;letter-spacing:1px;color:#496b56}
+.opening-bubble p {min-height:3.6em;line-height:1.8;font-size:16px;margin:12px 0;white-space:pre-wrap}
+.opening-actions {display:flex;justify-content:flex-end;gap:8px}
+.opening-gift {position:absolute;top:25%;left:65%;transform:translateX(-50%);display:grid;justify-items:center;gap:22px;white-space:nowrap;text-shadow:0 2px 8px #000}
+.opening-egg {width:112px;height:148px;border-radius:50% 50% 46% 46% / 62% 62% 38% 38%;background:radial-gradient(ellipse at 30% 25%,#fff 0%,transparent 24%),conic-gradient(#fbaaff,#92deff,#a7ffc9,#fff292,#ffb3d8,#b9a2ff,#fbaaff);border:3px solid #fff9df;box-shadow:0 0 35px #ffefff,0 0 85px #acffdd;animation:opening-give 1.8s ease-out both,opening-float 3s 1.8s ease-in-out infinite}
+body.opening-guided .app-shell {background:linear-gradient(#06292166,#06292199),url('/opening/spirit.jpg') left center/cover!important;gap:28px;padding:28px!important;align-items:center!important}
+body.opening-guided .app-panel {height:100%;max-height:900px;border:1px solid #d8c894;box-shadow:0 12px 60px #001d1d99!important}
+.opening-guide {position:relative;width:340px;flex-shrink:0;align-self:center;padding-top:58px}
+.opening-guide .opening-speaker {position:fixed;top:10px;right:16px}
+.opening-portrait {width:100%;height:250px;object-fit:cover;object-position:28% 30%;border:1px solid #d8c894;border-radius:24px}
+.opening-guide .opening-bubble {position:relative;bottom:auto;left:auto;transform:none;width:100%;margin-top:18px;padding:18px}
+.opening-glow {outline:3px solid #eed98c!important;outline-offset:4px;box-shadow:0 0 12px #ffe9a8,0 0 28px #83eccc!important;border-radius:8px;scroll-margin:24px;animation:opening-glow 1.8s ease-in-out infinite}
+body.opening-active [class*="AutonomousFairy"] {visibility:hidden}
+@keyframes opening-glow {50% {outline-color:#8cefdc;box-shadow:0 0 20px #fff2bc,0 0 36px #83eccc}}
+@keyframes opening-give {from {opacity:0;transform:translate(-80px,40px) scale(.35)}to {opacity:1;transform:translate(0,0) scale(1)}}
+@keyframes opening-float {50% {transform:translateY(-12px)}}
+@media(max-width:760px) {
+ body.opening-guided .app-shell {flex-direction:column;gap:10px;padding:10px!important}
+ .opening-guide {width:100%;max-width:560px;padding:0;display:flex;gap:10px;align-items:center}
+ .opening-portrait {width:68px;height:108px;border-radius:16px;flex-shrink:0}
+ .opening-guide .opening-speaker {position:absolute;right:8px;top:3px;padding:4px 8px}
+ .opening-guide .opening-speaker span {display:none}
+ .opening-guide .opening-bubble {margin:0;padding:12px;flex:1;min-width:0}
+ .opening-guide .opening-caption {padding-right:32px;font-size:10px}
+ .opening-guide .opening-bubble p {font-size:13px;line-height:1.6;min-height:4.8em;margin:8px 0}
+ .opening-actions button {padding:7px 14px;font-size:12px}
+ body.opening-guided .app-panel {flex:1;min-height:0}
+ .opening-scene .opening-art {object-fit:cover;object-position:35% center}
+ .opening-scene .opening-bubble {bottom:4%;padding:16px}
+ .opening-gift {top:26%;left:64%;font-size:12px}
+}
+@media(prefers-reduced-motion:reduce) {.opening *,.opening-glow {animation:none!important;scroll-behavior:auto!important}}

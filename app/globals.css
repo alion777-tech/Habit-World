@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Keep the app content scrollable while thumb navigation remains available. */
+.app-shell {height:100dvh;min-height:0!important;padding:0!important;overflow:hidden}
+.app-panel {width:100%!important;max-width:560px;height:100%;padding:0!important;display:flex;flex-direction:column;overflow:hidden}
+.app-content {flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:20px 16px;scrollbar-gutter:stable}
+.primary-nav {display:flex;flex-shrink:0;border-top:1px solid #94a3b8;padding:6px 4px max(6px,env(safe-area-inset-bottom));z-index:20}
+.primary-nav button {flex:1;min-width:0;min-height:48px;padding:8px 2px;font-size:12px;font-weight:700;cursor:pointer;border-radius:8px}
+.primary-nav button[aria-current=page] {background:#6366f11a}
+.app-menu {border-bottom:1px solid #94a3b8;padding-bottom:8px;margin-bottom:12px}
+.app-menu>summary {min-height:44px;padding:10px;cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;list-style:none}
+.app-menu>summary::-webkit-details-marker {display:none}
+.menu-today {margin-left:auto;font-size:13px;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+.app-menu[open]>summary {margin-bottom:12px}

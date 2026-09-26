@@ -1,0 +1,82 @@
+.layer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 20;
+  contain: strict;
+}
+
+.sprite {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: clamp(48px, 7vw, 80px);
+  visibility: hidden;
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: manipulation;
+  border-radius: 20px;
+  will-change: transform;
+  user-select: none;
+  opacity: 0.9;
+}
+
+.sprite img {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform-origin: 50% 85%;
+  will-change: transform;
+}
+
+.controls {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.controls button {
+  font-size: 12px;
+  color: inherit;
+  padding: 5px 10px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .controls { display: none; }
+  .sprite { will-change: auto; }
+  .sprite img { will-change: auto; }
+}
+.avatarBody { width:100%;transform-origin:50% 85%;will-change:transform; }
+.avatarBody img { will-change:auto; }
+
+.sprite:focus-visible { outline: 3px solid #6366f1; outline-offset: -2px; }
+
+.bubble {
+  position: fixed;
+  z-index: 21;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 16px));
+  box-sizing: border-box;
+  padding: 12px 16px;
+  border: 1px solid #c4b5fd;
+  border-radius: 18px;
+  background: #fffdf8;
+  color: #39334c;
+  box-shadow: 0 4px 18px #312e8126;
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  overflow: auto;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+.bubble[data-fading="true"] { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .bubble { transition: none; } }
