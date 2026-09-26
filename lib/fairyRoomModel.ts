@@ -7,7 +7,10 @@ export const ADVENTURE_AREAS = [
 ] as const;
 export type RoomRecord = { id: string; at: string; text: string };
 export type FairyRoomState = {
+  /** Read-only compatibility with pre-gold saves; removed during migration. */
   coins?:number;
+  /** UI projection; authoritative gold lives in users/{uid}.economy. */
+  gold?:number;
   materials?:Record<string,number>;
   inventory?:Record<string,number>;
   purchases?:string[];
@@ -28,13 +31,13 @@ function record(state: FairyRoomState, id: string, at: number | string, text: st
   state.records = [...state.records, { id, at: typeof at === "number" ? new Date(at).toISOString() : at, text }].slice(-ROOM_RULES.recordLimit);
 }
 export function createRoom(now: number, bornAt?: string): FairyRoomState {
-  const state: FairyRoomState = { health: 100, updatedAt: now, sleeping: false, adventurePoints: 0, highestLevel: 1, recoveryDay: "", recoveredHabitIds: [], adventure: null, records: [], coins:0,materials:{},inventory:{},purchases:[],equipment:null,tradeIds:[] };
+  const state: FairyRoomState = { health: 100, updatedAt: now, sleeping: false, adventurePoints: 0, highestLevel: 1, recoveryDay: "", recoveredHabitIds: [], adventure: null, records: [], materials:{},inventory:{},purchases:[],equipment:null,tradeIds:[] };
   if (bornAt) record(state, "birth", bornAt, "あなたの妖精が誕生しました。");
   record(state, "room-open", now, "木のうろのお部屋で、新しい暮らしが始まりました。");
   return state;
 }
 export function advanceRoom(source: FairyRoomState, now: number, level = source.highestLevel): FairyRoomState {
-  const state = { ...source, records: [...source.records], recoveredHabitIds: [...source.recoveredHabitIds],materials:{...source.materials},inventory:{...source.inventory},purchases:[...(source.purchases??[])],coins:source.coins??0 };
+  const state = { ...source, records: [...source.records], recoveredHabitIds: [...source.recoveredHabitIds],materials:{...source.materials},inventory:{...source.inventory},purchases:[...(source.purchases??[])] };
   const elapsed = Math.max(0, now - source.updatedAt);
   state.health = Math.max(0, Math.min(100, source.health - elapsed / 86400000 * ROOM_RULES.decayPerDay));
   state.updatedAt = Math.max(now, source.updatedAt);

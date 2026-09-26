@@ -1,3 +1,4 @@
+const economySupport = require('./economy-test-support.cjs');
 // No live Firebase writes. Exercise real date selection, calculation and persistence.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -31,11 +32,11 @@ const api = {
   doc: (_db, ...parts) => parts.join('/'),
   runTransaction: async (_db, fn) => {
     const pending = [];
-    await fn({ get: async ref => ({ data: () => structuredClone(docs.get(ref)) }), update: (ref, patch) => pending.push([ref, patch]) });
+    await fn({ get: async ref => ({ data: () => structuredClone(docs.get(ref)) }), update: (ref, patch) => pending.push([ref, patch]), set: (ref, patch) => pending.push([ref, patch]) });
     for (const [ref, patch] of pending) { docs.set(ref, { ...docs.get(ref), ...patch }); writes.push(ref); }
   },
 };
-const { updateHabitFields } = load('lib/habits/updateHabitFields.ts', name => name === 'firebase/firestore' ? api
+const { updateHabitFields } = load('lib/habits/updateHabitFields.ts', name => name.includes('economyModel') ? economySupport.model : name.includes('economyActions') ? economySupport.actions(docs) : name === 'firebase/firestore' ? api
   : name.includes('firebase') ? { auth, db: {} } : name.includes('habitTestDate') ? dateModel
   : name.includes('testAccessModel') ? model : name.includes('dateUtils') ? dates : {});
 
@@ -78,7 +79,7 @@ const { updateHabitFields } = load('lib/habits/updateHabitFields.ts', name => na
   auth.currentUser.uid = 'normal';
   await assert.rejects(updateHabitFields('test01', 'existing-habit', result.fields, date.context));
   assert.equal(JSON.stringify(docs.get(ref)), before);
-  assert.ok(writes.every(path => path === ref), 'normal location retained, no workspace copy');
+  assert.ok(writes.every(path => path === ref || path === 'users/test01'), 'normal location retained, no workspace copy');
 
   // Render the real home component with different habit and ToDo dates.
   const React = require('react'), { renderToStaticMarkup } = require('react-dom/server');

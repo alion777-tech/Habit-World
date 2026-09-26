@@ -1,3 +1,5 @@
+import { readEconomy, syncEconomy, syncLocalEconomy } from "./economyActions";
+import { reconcileEconomy } from "./economyModel";
 // lib/goalActions.ts
 import { collection, addDoc, deleteDoc, doc, updateDoc, getDocs, runTransaction, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -56,20 +58,28 @@ export const updateGoal = async (
     } else if (fields.done === false) {
       data.achievedAt = null;
     }
-    await updateDoc(doc(db, "users", uid, "goals", goalId), data);
+    await runTransaction(db, async tx => {
+      const state = await readEconomy(tx, uid);
+      const next = state.goals.map(g => g.id === goalId ? { ...g, ...data } : g);
+      tx.update(doc(db, "users", uid, "goals", goalId), data);
+      tx.set(state.ref, { economy: reconcileEconomy({ ...state.profile, economy: state.economy }, state.habits, next) }, { merge: true });
+    });
   } else {
     if (fields.done === true) {
       data.achievedAt = new Date();
     } else if (fields.done === false) {
       data.achievedAt = null;
     }
+    syncLocalEconomy();
     LocalStorageRepository.updateItem(LS_KEYS.GOALS, goalId, data);
+    syncLocalEconomy();
   }
   if (uid) await syncPublicGoals(uid);
 };
 
 export const deleteGoal = async (uid: string | null, goalId: string) => {
   if (!goalId) return;
+  await syncEconomy(uid);
   if (uid) {
     await deleteDoc(doc(db, "users", uid, "goals", goalId));
   } else {

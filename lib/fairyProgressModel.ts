@@ -2,7 +2,7 @@ import type { UserProfile } from "@/types/appTypes";
 
 export function advanceFairyLogin(profile: Partial<UserProfile>, today: string, yesterday: string) {
   const stats = { ...profile.stats };
-  const previous = profile.loginRewardDate ?? stats.lastActionDate;
+  const previous = profile.loginRewardDate ?? ((stats.continuousLoginDays || 0) > 0 ? stats.lastActionDate : undefined);
   if (previous !== today) {
     stats.continuousLoginDays = previous === yesterday ? (stats.continuousLoginDays || 0) + 1 : 1;
     stats.loginDays = (stats.loginDays || 0) + 1;

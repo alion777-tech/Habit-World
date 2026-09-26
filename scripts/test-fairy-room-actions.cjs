@@ -1,3 +1,4 @@
+const economySupport = require('./economy-test-support.cjs');
 // Verify the actual persistence boundary with an atomic Firestore transaction double.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -5,7 +6,7 @@ const vm = require('node:vm');
 const ts = require('typescript');
 function load(path, require = () => ({}), extra = {}) {
   const context = { exports: {}, require, ...extra };
-  vm.runInNewContext(ts.transpileModule(fs.readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, context);
+  vm.runInNewContext(ts.transpileModule(fs.readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText, context);
   return context.exports;
 }
 const now = Date.parse('2026-09-12T03:00:00Z');
@@ -19,14 +20,14 @@ const api = {
   updateDoc: async (ref, data) => docs.set(ref, { ...docs.get(ref), ...data }),
   runTransaction: async (_db, fn) => {
     const pending = [];
-    const result = await fn({ get: async ref => ({ data: () => docs.get(ref) }), update: (ref, data) => pending.push([ref, data]) });
+    const result = await fn({ get: async ref => ({ data: () => docs.get(ref) }), update: (ref, data) => pending.push([ref, data]), set: (ref, data) => pending.push([ref, data]) });
     if (fail) throw new Error('offline');
     pending.forEach(([ref, data]) => docs.set(ref, { ...docs.get(ref), ...data }));
     return result;
   },
 };
 const auth = { currentUser: { uid: 'me', isAnonymous: false } };
-const resolve = name => name === 'firebase/firestore' ? api : name.includes('shopModel')?shopModel:name.includes('fairyRoomModel') ? model
+const resolve = name => name.includes('economyModel') ? economySupport.model : name.includes('economyActions') ? economySupport.actions(docs) : name.includes('legacyShopOwnership') ? {legacyShopPurchases:()=>[]} : name === 'firebase/firestore' ? api : name.includes('shopModel')?shopModel:name.includes('fairyRoomModel') ? model
   : name.includes('dateUtils') ? { formatDateToJST: () => '2026-09-12' }
   : name.includes('firebase') ? { db: {}, auth } : {};
 const { updateHabitFields } = load('lib/habits/updateHabitFields.ts', resolve, { Date: Clock });
@@ -60,14 +61,14 @@ const { syncFairyRoom,tradeFairyRoom } = load('lib/fairyRoomActions.ts', resolve
   const returned = await syncFairyRoom('me', 13);
   assert.equal(returned.adventurePoints, trip.adventure.reward);
   assert.equal((await syncFairyRoom('me', 13)).adventurePoints, trip.adventure.reward);
-  docs.set('users/me',{...profile,fairyRoom:{...model.createRoom(now),coins:100,materials:{'forest-herb':2}}});
+  docs.set('users/me',{...profile,bonusPoints:100,fairyRoom:{...model.createRoom(now),coins:100,materials:{'forest-herb':2}}});
   const purchase={type:'buy',shop:'elf',productId:'elf-potion',requestId:'purchase-1'};
   fail=true;await assert.rejects(tradeFairyRoom('me',purchase));assert.equal(docs.get('users/me').fairyRoom.coins,100);assert.equal(docs.get('users/me').fairyRoom.inventory['elf-potion'],undefined);
   fail=false;await tradeFairyRoom('me',purchase);await tradeFairyRoom('me',purchase);
-  assert.equal(docs.get('users/me').fairyRoom.coins,90);assert.equal(docs.get('users/me').fairyRoom.inventory['elf-potion'],1);
+  assert.equal(docs.get('users/me').economy.gold,190);assert.equal(docs.get('users/me').fairyRoom.inventory['elf-potion'],1);
   const sale={type:'sell',shop:'elf',materialId:'forest-herb',quantity:2,requestId:'sale-1'};
   fail=true;await assert.rejects(tradeFairyRoom('me',sale));assert.equal(docs.get('users/me').fairyRoom.materials['forest-herb'],2);
-  fail=false;await tradeFairyRoom('me',sale);assert.equal(docs.get('users/me').fairyRoom.coins,100);assert.equal(docs.get('users/me').fairyRoom.materials['forest-herb'],0);
+  fail=false;await tradeFairyRoom('me',sale);assert.equal(docs.get('users/me').fairyRoom.coins,undefined);assert.equal(docs.get('users/me').economy.gold,200);assert.equal(docs.get('users/me').fairyRoom.materials['forest-herb'],0);
   auth.currentUser.uid = 'someone-else';
   await assert.rejects(tradeFairyRoom('me',purchase));
   await assert.rejects(syncFairyRoom('me', 13));

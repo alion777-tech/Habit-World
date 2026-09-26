@@ -60,4 +60,4 @@
 初期ショート髪の標準配置は幅270・高さ225・y=55へ変更。「木のうろのおうち」の表示は削除済み。
 
 確定した姿と上下位置は共通の `useWardrobe(uid)` で部屋・自律移動キャラクターに反映する。`wardrobe-updated`（同じ画面）と `storage`（別タブ）を購読する。試着中の選択は反映しない。
-店舗と冒険素材・コインの接続確認は `node scripts/preview-wardrobe.cjs --port=3002` → `http://localhost:3002/?entry=room`。商品の設定・価格・効果・買取については [店舗・買取・冒険素材の設定資料](shops/README.md) を参照。
+店舗と冒険素材・ゴールドの接続確認は `node scripts/preview-wardrobe.cjs --port=3002` → `http://localhost:3002/?entry=room`。商品の設定・価格・効果・買取については [店舗・買取・冒険素材の設定資料](shops/README.md) を参照。

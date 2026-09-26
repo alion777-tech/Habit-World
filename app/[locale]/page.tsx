@@ -1,4 +1,5 @@
 "use client";
+import { syncEconomy } from "@/lib/economyActions";
 
 import { useEffect, useState, useRef } from "react";
 import {
@@ -16,7 +17,7 @@ import { useTestAccess } from "@/hooks/useTestAccess";
 import { habitTestDate } from "@/lib/habits/habitTestDate";
 import FairyRoom from "../components/FairyRoom";
 import FairyChamber from "../components/FairyChamber";
-import { receiveFairyEgg, recordFairyLogin } from "@/lib/fairyProgressActions";
+import { recordFairyLogin } from "@/lib/fairyProgressActions";
 import AutonomousFairy from "../components/AutonomousFairy";
 import { announceFairy } from "@/lib/fairy/events";
 import {
@@ -129,6 +130,7 @@ export default function Home() {
   } = useHabitCalendar(habits);
 
   const testAccess = useTestAccess();
+  const canPreviewFairyRoom = !!uid && !isAnonymous && testAccess.uid === uid && !testAccess.loading && !!testAccess.label && testAccess.enabled;
   const habitDate = habitTestDate(todayStr, uid, testAccess);
   const [testDateBusy, setTestDateBusy] = useState(false);
   const [habitBusy, setHabitBusy] = useState(false);
@@ -555,14 +557,23 @@ export default function Home() {
   const titleBonusPoints = Number(profile.bonusPoints || 0);
 
   // 合計
-  const totalPoint = habitPoints + goalBonusPoints + titleBonusPoints + (profile.todoPoints || 0);
+  const legacyPoint = habitPoints + goalBonusPoints + titleBonusPoints + (profile.todoPoints || 0);
+  const totalPoint = profile.economy?.lifetimePoints ?? legacyPoint;
+  const gold = profile.economy?.gold ?? 0;
+  const [economyError, setEconomyError] = useState("");
+  useEffect(() => {
+    if (isLoading || (uid && profile.uid !== uid)) return;
+    let active = true;
+    void syncEconomy(uid).then(() => { if (active) setEconomyError(""); }).catch(() => { if (active) setEconomyError("ゴールドを同期できません。接続を確認して再読み込みしてください。"); });
+    return () => { active = false; };
+  }, [uid, profile.uid, isLoading, legacyPoint]);
   // const totalPoint = habits.reduce((sum, h) => sum + (h.point ?? 0), 0) + Number(profile.bonusPoints || 0);
 
   const level = Math.floor(totalPoint / 100) + 1;
 
   // 達成判定を再実行しても、加算と履歴保存はトランザクションで一度だけ。
   useEffect(() => {
-    if (!uid || isLoading) return;
+    if (!uid || isLoading || !profile.economy) return;
     const stats = {
       ...profile.stats,
       firstLoginAt: profile.firstLoginAt,
@@ -577,7 +588,7 @@ export default function Home() {
       playCharing();
       alert(added.map(item => `🎉 特別ポイント獲得！\n「${item.name}」\n${item.description}\n＋${item.point} pt`).join("\n\n"));
     }).catch(error => console.error("[SpecialPoints] 保存失敗", error));
-  }, [uid, isLoading, profile.stats, profile.firstLoginAt, totalPoint, habits.length, goals.length, earnedTitles]);
+  }, [uid, isLoading, profile.stats, profile.firstLoginAt, totalPoint, profile.economy?.lifetimePoints, habits.length, goals.length, earnedTitles]);
 
   // 🔹 利用制限チェック用
   const checkLimit = (type: "goals" | "todos" | "habits") => {
@@ -664,13 +675,11 @@ export default function Home() {
 
   // 日付は実際の日本時間。テスト用の日付オフセットは報酬判定に渡さない。
   useEffect(() => {
-    if (isLoading || (uid && isAnonymous)) return;
+    if (isLoading || !uid || isAnonymous) return;
     let cancelled = false;
     const run = async () => {
       try {
-        // 旧オープニングで受け取った卵を移行する。
-        if (!profile.fairy && localStorage.getItem("habit-world-opening-egg") === "received") await receiveFairyEgg(uid);
-        if (uid) await recordFairyLogin(uid);
+        await recordFairyLogin(uid);
         if (!cancelled) setFairyError("");
       } catch { if (!cancelled) setFairyError("ログイン記録を保存できませんでした。通信を確認して再試行してください。"); }
     };
@@ -992,12 +1001,13 @@ export default function Home() {
               color: isDarkMode ? "#fbbf24" : "#444",
               fontWeight: "bold"
             }}>
-              🏆 {ts("points", { points: totalPoint })}
+              🏆 累計獲得ポイント {totalPoint.toLocaleString()} pt · 🪙 {gold.toLocaleString()} ゴールド
             </div>
           </>
 
         </details>
-        <p style={{ margin: "12px 0", fontSize: 13 }}>🏆 {ts("points", { points: totalPoint })}</p>
+        <p style={{ margin: "12px 0", fontSize: 13 }}>🏆 累計獲得ポイント {totalPoint.toLocaleString()} pt · 🪙 {gold.toLocaleString()} ゴールド</p>
+        {economyError && <p role="alert">{economyError}</p>}
         {isLoading && (
           <div style={{ padding: 40, textAlign: "center", color: "#6366f1", fontWeight: "bold" }}>
             <div style={{ fontSize: 24, marginBottom: 8 }}>🔄</div>
@@ -1006,10 +1016,21 @@ export default function Home() {
         )}
 
         {view === "fairyRoom" && (isLoading ? <p role="status">お部屋を準備しています…</p> : <>
-          {uid && profile.uid === uid && profile.fairy?.status === "ready" && <button type="button" onClick={() => setTryFairyRoom(value => !value)} style={{ padding: "10px 14px", marginBottom: 12, border: "1px solid #94a3b8", borderRadius: 10, cursor: "pointer" }}>{tryFairyRoom ? "自分の妖精の部屋に戻る" : "サンプルの妖精で試す"}</button>}
-          {!tryFairyRoom && uid && profile.uid === uid && profile.fairy?.status === "ready"
-            ? <FairyChamber key={`room-${uid}`} uid={uid} fairy={profile.fairy} room={profile.fairyRoom} totalPoints={totalPoint} loginDays={profile.stats?.loginDays ?? 0} />
-            : <FairyChamberPreview key={`trial-${uid || "guest"}`} embedded isDarkMode={isDarkMode} />}
+          {canPreviewFairyRoom && profile.uid === uid && profile.fairy?.status === "ready" && <button type="button" onClick={() => setTryFairyRoom(value => !value)} style={{ padding: "10px 14px", marginBottom: 12, border: "1px solid #94a3b8", borderRadius: 10, cursor: "pointer" }}>{tryFairyRoom ? "自分の妖精の部屋に戻る" : "サンプルの妖精で試す"}</button>}
+          {!(canPreviewFairyRoom && tryFairyRoom) && uid && !isAnonymous && profile.uid === uid && profile.fairy?.status === "ready"
+            ? <FairyChamber key={`room-${uid}`} uid={uid} fairy={profile.fairy} room={profile.fairyRoom ? { ...profile.fairyRoom, gold } : undefined} totalPoints={totalPoint} loginDays={profile.stats?.loginDays ?? 0} />
+            : canPreviewFairyRoom ? <FairyChamberPreview key={`trial-${uid}`} embedded isDarkMode={isDarkMode} />
+            : <section aria-label="妖精の部屋（未解放）" style={{ padding: 24, textAlign: "center" }}>
+                <div style={{ fontSize: 48 }} aria-hidden="true">🥚</div>
+                <h2>妖精の部屋はまだ解放されていません</h2>
+                <p>7日連続ログインで卵が孵化し、妖精に名前をつけると部屋が解放されます。</p>
+                {uid && !isAnonymous && profile.uid === uid
+                  ? <p>連続ログイン：{Math.min(7, profile.stats?.continuousLoginDays ?? 0)} / 7日{profile.fairy?.status === "naming" ? " · 妖精に名前をつけてください" : ""}</p>
+                  : <p>Googleアカウントでログインして卵を育てましょう。</p>}
+                <div style={{ display: "flex", gap: 12, justifyContent: "center", opacity: 0.5 }}>
+                  <button disabled>🔒 妖精の部屋</button><button disabled>🔒 クローゼット</button><button disabled>🔒 着せ替え</button>
+                </div>
+              </section>}
         </>)}
         {(view === "habit" || view === "home") && habitDate.context && <p role="status">習慣テスト日付：{habitDate.today}（ToDo・妖精・冒険・ログインは実日付のまま）</p>}
         {(view === "habit" || view === "home") && habitError && <p role="alert">{habitError}</p>}

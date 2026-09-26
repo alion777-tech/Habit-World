@@ -1,3 +1,4 @@
+const economySupport = require('./economy-test-support.cjs');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
@@ -43,13 +44,15 @@ const firebase={
  getDocs:async r=>({docs:[...docs.keys()].filter(k=>k.startsWith(r.path+'/')).map(k=>snapshot(ref(k)))}),
  runTransaction:async(_db,fn)=>{
    const pending=[];
-   await fn({get:async r=>snapshot(r),set:(r,p)=>pending.push(()=>write(r,p))});
+   await fn({get:async r=>snapshot(r),set:(r,p)=>pending.push(()=>write(r,p)),update:(r,p)=>pending.push(()=>write(r,p))});
    pending.forEach(fn=>fn());
  },
  writeBatch:()=>{const pending=[];return {update:(r,p)=>pending.push(()=>write(r,p)),commit:async()=>pending.forEach(fn=>fn())};},
  updateDoc:async(r,p)=>write(r,p), deleteDoc:async r=>docs.delete(r.path), serverTimestamp:()=> '2026-09-14',
 };
 const actions=load('lib/goalActions.ts',name=>{
+ if(name.includes('economyModel'))return economySupport.model;
+ if(name.includes('economyActions'))return economySupport.actions(docs,ref);
  if(name==='firebase/firestore')return firebase;
  if(name==='@/lib/firebase')return {db:{}};
  if(name==='./goalModel')return model;

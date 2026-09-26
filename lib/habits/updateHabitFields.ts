@@ -1,3 +1,5 @@
+import { readEconomy, syncLocalEconomy } from "../economyActions";
+import { reconcileEconomy } from "../economyModel";
 // lib/habits/updateHabitFields.ts
 import { doc, updateDoc, runTransaction } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
@@ -45,16 +47,20 @@ export const updateHabitFields = async (
       }
       const habit = (await tx.get(habitRef)).data();
       const profileRef = doc(db, "users", uid);
-      const profile = (await tx.get(profileRef)).data() as UserProfile | undefined;
+      const state = await readEconomy(tx, uid);
+      const profile = state.profile;
       const hadToday = habit?.pointHistory?.some((entry: { date: string }) => entry.date === today);
       const hasToday = fields.pointHistory.some((entry: { date: string }) => entry.date === today);
       tx.update(habitRef, fields);
+      tx.set(profileRef, { economy: reconcileEconomy({ ...profile, economy: state.economy }, state.habits.map(h => h.id === habitId ? { ...h, ...fields } : h), state.goals) }, { merge: true });
       if (!hadToday && hasToday && profile?.fairy?.status === "ready") {
         const room = profile.fairyRoom ?? createRoom(now, profile.fairy.bornAt);
         tx.update(profileRef, { fairyRoom: recoverFromHabit(room, now, today, habitId) });
       }
     });
   } else {
+    syncLocalEconomy();
     LocalStorageRepository.updateItem(LS_KEYS.HABITS, habitId, fields);
+    syncLocalEconomy();
   }
 };

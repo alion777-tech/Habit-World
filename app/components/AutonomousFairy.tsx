@@ -6,6 +6,7 @@ import { useLocale } from "next-intl";
 import styles from "./AutonomousFairy.module.css";
 import FairySpeech, { type FairyContext } from "./FairySpeech";
 import { AvatarFigure } from '../(root)/avatar/wardrobe-studio';
+import { DEFAULT } from '../(root)/avatar/wardrobe';
 import { useWardrobe } from '../../hooks/useWardrobe';
 
 type Point = { x: number; y: number };
@@ -181,7 +182,7 @@ export default function AutonomousFairy({ context, uid }: { context?: FairyConte
           aria-label={japanese ? "妖精と話す" : "Talk to the fairy"}
           onClick={() => setSpeechRequest(n => n + 1)}
           onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSpeechRequest(n => n + 1); } }}>
-          {wardrobe?.closetPurchased?<div className={styles.avatarBody}><AvatarFigure avatar={wardrobe.equipped} adjustments={wardrobe.adjustments}/></div>:<Image src="/world/fairy.png" alt="" width={1024} height={1536} unoptimized draggable={false} />}
+          {wardrobe?.closetPurchased?<div className={styles.avatarBody}><AvatarFigure avatar={wardrobe.equipped} adjustments={wardrobe.adjustments}/></div>:<div className={styles.avatarBody}><AvatarFigure avatar={DEFAULT}/></div>}
         </div>
       </div>
       <FairySpeech sprite={sprite} request={speechRequest} context={context} locale={japanese ? "ja" : "en"} />

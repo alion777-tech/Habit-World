@@ -102,7 +102,7 @@ export function equip(a:Appearance,category:Category,id:string):Appearance{retur
 export function buy(w:Wardrobe,category:Category,id:string,shop:Shop):Wardrobe{
  if(!w.closetPurchased)throw Error('まず妖精の衣類店でクローゼットを購入してください。');
  const item=ITEMS.find(i=>i.category===category&&i.id===id&&i.shop===shop);
- if(!item||!offered(item)?.enabled)throw Error('この店舗では購入できません。');if(offered(item)?.price!==0)throw Error('コイン決済で購入してください。');
+ if(!item||!offered(item)?.enabled)throw Error('この店舗では購入できません。');if(offered(item)?.price!==0)throw Error('ゴールド決済で購入してください。');
  return {...w,owned:[...new Set([...w.owned,itemKey(item)])]};
 }
 export function saveAppearance(w:Wardrobe,a:Appearance):Wardrobe{

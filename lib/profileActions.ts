@@ -49,6 +49,7 @@ export const getUserProfile = async (uid: string | null): Promise<UserProfile | 
       showGoal: typeof profileData.showGoal === "boolean" ? profileData.showGoal : !!profileData.showGoals,
       earnedTitles: Array.isArray(profileData.earnedTitles) ? profileData.earnedTitles : [],
       dreamAchievedCount: profileData.dreamAchievedCount ?? 0,
+      economy: isOwner ? profileData.economy : undefined,
       lastLoginAt: statusData.lastLoginAt ?? profileData.lastLoginAt ?? null,
       showLastLogin: !!profileData.showLastLogin,
       following: profileData.following ?? [],
@@ -84,15 +85,16 @@ export const saveUserProfile = async (uid: string | null, profile: Partial<UserP
       earnedTitles: [],
       stats: {},
     };
-    const updated = { ...current, ...profile };
+    const updated = { ...current, ...profile, ...(current.economy ? { economy: current.economy } : {}) };
     LocalStorageRepository.setProfile(updated);
     return;
   }
 
   if (auth.currentUser?.uid !== uid) return;
 
+  const { economy: _economy, bonusPoints: _bonus, todoPoints: _todo, specialPointHistory: _history, earnedTitles: _titles, ...editableProfile } = profile;
   const batch = {
-    ...profile,
+    ...editableProfile,
     updatedAt: serverTimestamp(),
   };
 

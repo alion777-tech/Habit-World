@@ -56,7 +56,9 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, loginDays,
   const inFlight = useRef(false);
   const lastLine = useRef(-1);
   const level = Math.floor(Math.max(0, totalPoints) / 100) + 1;
-  const source = room && (!saved || room.updatedAt > saved.updatedAt) ? room : saved;
+  const latestRoom = room && (!saved || room.updatedAt >= saved.updatedAt) ? room : saved;
+  const source = latestRoom ? { ...latestRoom, gold: room?.gold ?? latestRoom.gold } : undefined;
+  const closetUnlocked = !!wardrobe?.closetPurchased || !!source?.purchases?.includes("closet");
   const trade=useCallback(async(action:TradeAction)=>{const next=onTrade?await onTrade(action):await tradeFairyRoom(uid,action);setSaved(next);setNow(Date.now());return next;},[uid,onTrade]);
   // Project health as time passes; rewards/records are only displayed after a committed sync.
   const health = source ? advanceRoom(source, now ?? source.updatedAt).health : 100;
@@ -111,25 +113,25 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, loginDays,
         </div>
         <div className={styles.speech} role="status" aria-live="polite">{trip ? "いま、森の奥を探検しているよ。帰ったらお話を聞いてね！" : sleeping ? "すぅ、すぅ……。また一緒に、小さな一歩から。" : line}</div>
         <div className={styles.characterStage} data-motion={trip ? "away" : sleeping ? "sleeping" : "idle"}>
-          {trip ? <div className={styles.away}><span aria-hidden="true">✧</span><p>森の奥へおでかけ中</p><small>{remaining > 0 ? `帰還まで 約${Math.ceil(remaining / 3600000)}時間` : "帰還しています。記録を確認中…"}</small></div> : <button type="button" className={styles.fairyButton} onClick={talk} aria-label={`${fairy.name || "妖精"}に話しかける`}><div style={{ width: "100%", maxWidth: 330, margin: "auto" }}><AvatarFigure avatar={wardrobe?.equipped ?? DEFAULT} adjustments={wardrobe?.adjustments}/></div>{sleeping && <span className={styles.zzz}>Z z z</span>}</button>}
+          {trip ? <div className={styles.away}><span aria-hidden="true">✧</span><p>森の奥へおでかけ中</p><small>{remaining > 0 ? `帰還まで 約${Math.ceil(remaining / 3600000)}時間` : "帰還しています。記録を確認中…"}</small></div> : <button type="button" className={styles.fairyButton} onClick={talk} aria-label={`${fairy.name || "妖精"}に話しかける`}><div style={{ width: "100%", maxWidth: 330, margin: "auto" }}><AvatarFigure avatar={closetUnlocked ? wardrobe?.equipped ?? DEFAULT : DEFAULT} adjustments={closetUnlocked ? wardrobe?.adjustments : undefined}/></div>{sleeping && <span className={styles.zzz}>Z z z</span>}</button>}
         </div>
         <p className={styles.touchHint}>{trip ? "帰還後、冒険の記録が届きます" : sleeping ? "習慣をひとつ再開すると、目を覚まします" : "妖精をタップして、おしゃべり"}</p>
       </div>
       <nav className={styles.menu} aria-label="妖精の部屋メニュー"><p className={styles.menuHeading}>このお部屋でできること</p>
         {MENU.map(item => {
-          const disabled = item.id === "council";
+          const disabled = item.id === "council" || (item.id === "closet" && !closetUnlocked);
           return <button type="button" key={item.id} className={`${styles.plank} ${item.id === "adventure" ? styles.adventurePlank : ""}`} disabled={disabled} onClick={() => {
             if (item.id === "closet") { setAtelier('closet'); return; }
             if (item.id === "shop") { setAtelier('shops'); return; }
             if (item.id === "council") return;
             if (item.id === "ranking") setRanking("growth");
             setPanel(item.id);
-          }}><span className={styles.menuIcon} aria-hidden="true">{item.icon}</span><span><strong>{item.title}</strong><small>{item.detail}</small></span><span className={styles.arrow} aria-hidden="true">{disabled ? "—" : "›"}</span></button>;
+          }}><span className={styles.menuIcon} aria-hidden="true">{item.icon}</span><span><strong>{item.title}</strong><small>{item.id === "closet" && !closetUnlocked ? "ショップでクローゼットを購入して解放" : item.detail}</small></span><span className={styles.arrow} aria-hidden="true">{disabled ? "—" : "›"}</span></button>;
         })}
         <p className={styles.menuFoot}>習慣を続ける。妖精が育つ。世界が広がる。</p>
       </nav>
     </div>
-    <footer className={styles.footer}><span>✧ 冒険ポイント <b>{(source?.adventurePoints ?? 0).toLocaleString()} AP</b></span><span>所持コイン <b>{(source?.coins??0).toLocaleString()}</b></span><span>この世界に来た日数 <b>{loginDays.toLocaleString()}日</b></span></footer>
+    <footer className={styles.footer}><span>✧ 冒険ポイント <b>{(source?.adventurePoints ?? 0).toLocaleString()} AP</b></span><span>ゴールド <b>{(source?.gold??0).toLocaleString()}</b></span><span>この世界に来た日数 <b>{loginDays.toLocaleString()}日</b></span></footer>
     <dialog ref={dialog} aria-labelledby="fairy-chamber-dialog-title" className={styles.dialog} onCancel={() => setPanel(null)} onClose={() => setPanel(null)} onClick={event => { if (event.target === event.currentTarget) setPanel(null); }}>
       <div className={styles.dialogContent}><div className={styles.dialogHeader}><h3 id="fairy-chamber-dialog-title">{title}</h3><button type="button" aria-label="閉じる" onClick={() => setPanel(null)}>×</button></div>
         {errorBox}
@@ -149,7 +151,7 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, loginDays,
         {panel === "records" && <><p>ふたりの歩みを、新しいものから{ROOM_RULES.recordLimit}件まで残します。</p><ol className={styles.records}>{[...(source?.records ?? [])].reverse().map(item => <li key={item.id}><time dateTime={item.at}>{new Date(item.at).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "long", day: "numeric" })}</time><p>{item.text}</p></li>)}</ol>{!source?.records.length && <p>お部屋の記録を準備しています。</p>}</>}
         {panel === "adventure" && <>
           <p>小さな旅が、新しい世界への入口になる。</p>
-          <p>帰還時にはAPと素材を受け取れます。素材はアイテムショップでコインに換えられます。</p><ul>{MATERIALS.map(m=><li key={m.id}>{m.name}：所持 {source?.materials?.[m.id]??0}個</li>)}</ul>
+          <p>帰還時にはAPと素材を受け取れます。素材はアイテムショップでゴールドに換えられます。</p><ul>{MATERIALS.map(m=><li key={m.id}>{m.name}：所持 {source?.materials?.[m.id]??0}個</li>)}</ul>
           {ADVENTURE_AREAS.map(area => <div className={styles.areaCard} key={area.id}><span className={styles.eyebrow}>FIRST JOURNEY</span><h4>🌿 {area.name}</h4><p>木漏れ日の向こうに、まだ知らない景色が待っています。</p><dl><div><dt>冒険の時間</dt><dd>約24時間</dd></div><div><dt>出発に必要な体力</dt><dd>ハート4個以上</dd></div><div><dt>出発時の消費</dt><dd>ハート1個</dd></div><div><dt>帰還のおみやげ</dt><dd>{area.minReward}〜{area.maxReward} AP</dd></div></dl>
             {trip ? <div role="status"><p>森の奥を冒険しています。</p><p>帰還予定：{new Date(trip.returnsAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}（日本時間）</p>{remaining === 0 && <button type="button" className={styles.primary} disabled={busy} onClick={() => void sync()}>帰還を確認する</button>}</div> : <><button type="button" className={styles.primary} disabled={busy || !readyToLeave || !!error} onClick={() => void sync(area.id)}>{busy ? "準備しています…" : "森の奥へ送り出す"}</button>{!readyToLeave && source && <p className={styles.hint}>今はひとやすみ。習慣を続けて、ハート4個以上に回復すると出発できます。</p>}</>}
           </div>)}

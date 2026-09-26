@@ -1,3 +1,5 @@
+import { readEconomy, syncLocalEconomy } from "./economyActions";
+import { reconcileEconomy } from "./economyModel";
 import { collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, runTransaction, setDoc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { LocalStorageRepository as Local } from "./localActions";
@@ -19,15 +21,17 @@ export async function toggleTodo(uid: string | null, todoId: string, done: boole
     const ref = doc(db, "users", uid, "todos", todoId);
     const nextRef = doc(collection(db, "users", uid, "todos"));
     await runTransaction(db, async tx => {
+      const state = await readEconomy(tx, uid);
       const snap = await tx.get(ref);
       if (!snap.exists() || snap.data().done !== done) return;
       const todo = { ...snap.data(), id: todoId } as Todo;
       const { fields, reward, next } = completionChanges(todo, today, now);
       tx.update(ref, { ...fields, ...(next ? { nextTodoId: nextRef.id } : {}) });
       if (next) tx.set(nextRef, { ...next, createdAt: serverTimestamp() });
-      if (reward) tx.set(doc(db, "users", uid), { todoPoints: increment(reward) }, { merge: true });
+      tx.set(state.ref, { economy: reconcileEconomy({ ...state.profile, economy: state.economy, todoPoints: (state.profile.todoPoints || 0) + reward }, state.habits, state.goals), ...(reward ? { todoPoints: increment(reward) } : {}) }, { merge: true });
     });
   } else {
+    syncLocalEconomy();
     const list = Local.getList<Todo>(LS_KEYS.TODOS);
     const todo = list.find(t => t.id === todoId);
     if (!todo || todo.done !== done) return;
@@ -36,6 +40,7 @@ export async function toggleTodo(uid: string | null, todoId: string, done: boole
     if (next) { todo.nextTodoId = "local_todo_" + crypto.randomUUID(); list.push({ ...next, id: todo.nextTodoId }); }
     Local.saveList(LS_KEYS.TODOS, list);
     if (reward) { const p = Local.getProfile() || {}; Local.setProfile({ ...p, todoPoints: (p.todoPoints || 0) + reward }); }
+    syncLocalEconomy();
   }
 }
 export async function deleteTodo(uid: string | null, todoId: string) {

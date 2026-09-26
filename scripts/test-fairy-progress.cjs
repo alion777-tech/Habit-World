@@ -30,3 +30,6 @@ assert.equal(noEgg.bonusPoints,undefined);
 const named=advance({...profile,fairy:{...profile.fairy,status:'ready',name:'ミント'}},'2026-09-08','2026-09-07');
 assert.equal(named.fairy,undefined);assert.equal(named.bonusPoints,undefined);
 console.log('Fairy: seven days, same-day retry, gaps, missing egg, pending naming and duplicate rewards passed.');
+
+const actionBeforeLogin=advance({stats:{lastActionDate:'2026-09-01'}},'2026-09-01','2026-08-31');
+assert.equal(actionBeforeLogin.stats.continuousLoginDays,1);

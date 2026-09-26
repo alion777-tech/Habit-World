@@ -1,3 +1,5 @@
+import { readEconomy } from "./economyActions";
+import { reconcileEconomy } from "./economyModel";
 import { doc, runTransaction } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { LocalStorageRepository } from "./localActions";
@@ -9,8 +11,9 @@ async function update(uid: string, change: (profile: Partial<UserProfile>) => Pa
   if (auth.currentUser?.uid !== uid || auth.currentUser.isAnonymous) throw new Error("Googleアカウントでログインしてください。");
   await runTransaction(db, async tx => {
     const ref = doc(db, "users", uid);
-    const profile = (await tx.get(ref)).data() || {};
-    tx.set(ref, change(profile), { merge: true });
+    const state = await readEconomy(tx, uid);
+    const patch = change(state.profile);
+    tx.set(ref, { ...patch, economy: reconcileEconomy({ ...state.profile, ...patch, economy: state.economy }, state.habits, state.goals) }, { merge: true });
   });
 }
 export async function receiveFairyEgg(uid: string | null) {
@@ -22,7 +25,11 @@ export async function receiveFairyEgg(uid: string | null) {
 export async function recordFairyLogin(uid: string) {
   const now = new Date();
   const yesterday = new Date(now.getTime() - 86400000);
-  await update(uid, p => ({ ...advanceFairyLogin(p, formatDateToJST(now), formatDateToJST(yesterday)), firstLoginAt: p.firstLoginAt || now.toISOString() }));
+  await update(uid, p => {
+    // オープニングの閲覧状態に関係なく、実ログインと同じ取引で卵を用意する。
+    const fairy = p.fairy ?? { status: "egg" as const, eggReceivedAt: formatDateToJST(now), appearance: "basic" };
+    return { fairy, ...advanceFairyLogin({ ...p, fairy }, formatDateToJST(now), formatDateToJST(yesterday)), firstLoginAt: p.firstLoginAt || now.toISOString() };
+  });
 }
 export async function nameFairy(uid: string, name: string) {
   const trimmed = name.trim();

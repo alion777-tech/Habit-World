@@ -57,6 +57,7 @@ export type TodoRecurrence = { unit: "day" | "week" | "month"; interval: number;
 export type TodoCategory = { id: string; name: string; shopping?: boolean };
 
 export type UserProfile = {
+  economy?: import("../lib/economyModel").Economy;
   publicGoals?: { id: string; title: string; deadline: string | null }[];
   fairyRoom?: import("@/lib/fairyRoomModel").FairyRoomState;
   fairy?: { status: "egg" | "naming" | "ready"; eggReceivedAt: string; bornAt?: string; name?: string; appearance: string };

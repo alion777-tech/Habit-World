@@ -1,3 +1,4 @@
+import { syncEconomy } from "./economyActions";
 // lib/habitActions.ts
 import {
   collection,
@@ -59,6 +60,7 @@ export const addHabit = async (
 // 削除
 export const deleteHabit = async (uid: string | null, id: string) => {
   if (!id) return;
+  await syncEconomy(uid);
 
   if (uid) {
     try {

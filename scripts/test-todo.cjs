@@ -1,3 +1,4 @@
+const economySupport = require('./economy-test-support.cjs');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const ts = require('typescript');
@@ -63,6 +64,8 @@ const firestore={
   },
 };
 const actionContext={exports:{},crypto,Date,require: name=> {
+  if(name.includes('economyModel')) return economySupport.model;
+  if(name.includes('economyActions')) return economySupport.actions(docs,path=>({path,id:path.split('/').pop()}),repository);
   if(name==='firebase/firestore') return firestore;
   if(name.includes('firebase')) return {db:{}};
   if(name.includes('localActions')) return {LocalStorageRepository:repository};
@@ -108,6 +111,7 @@ vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/todoActions.ts','utf8
     runTransaction:async(_db,fn)=>{ const pending=[]; await fn({get:async ref=>({data:()=>syncDocs.get(ref.path)}),set:(ref,data)=>pending.push(()=>merge(ref,data))});pending.forEach(f=>f()); },
   };
   const syncContext={exports:{},crypto,console:{log(){}},localStorage:{removeItem:()=>{}},require:name=> {
+    if(name.includes('economyActions')) return economySupport.actions(syncDocs,path=>({path,id:path.split('/').pop()}),{getProfile:()=>storedProfile,setProfile:p=>{storedProfile=p;}});
     if(name==='firebase/firestore') return syncFirestore;
     if(name==='./goalActions') return {syncPublicGoals:async()=>{}};
     if(name==='./firebase') return {db:{}};
