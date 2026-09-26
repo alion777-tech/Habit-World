@@ -285,12 +285,12 @@ export default function DreamView({
       <p style={{ fontSize: 12, marginBottom: 12 }}>{t("priorityHint")}</p>
       {completionError && <p role="alert">{completionError}</p>}
       {orderError && <p role="alert">{t("orderError")}</p>}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {sorted.map((g, index) => (
             <div
               key={g.id}
               style={{
-                padding: 12,
+                padding: "6px 10px",
                 borderRadius: 10,
                 background: g.done
                   ? (isDarkMode ? "#1f2937" : "#f9fafb")
@@ -300,7 +300,7 @@ export default function DreamView({
                   : (isDarkMode ? "1px solid #4b5563" : "1px solid #ddd"),
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
+                gap: 8,
                 opacity: g.done ? 0.7 : 1,
               }}
             >
@@ -376,6 +376,8 @@ export default function DreamView({
                     style={{
                       textDecoration: g.done ? "line-through" : "none",
                       fontWeight: g.done ? "normal" : "600",
+                      fontSize: 16,
+                      lineHeight: 1.4,
                       color: g.done
                         ? (isDarkMode ? "#9ca3af" : "#9ca3af")
                         : (isDarkMode ? "#f3f4f6" : "#1f2937")
@@ -384,13 +386,6 @@ export default function DreamView({
                     {g.title}
                   </div>
                 )}
-                {!g.done && <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 8 }}>
-                  <button type="button" disabled={ordering || index === 0} aria-label={t("moveUp", { title: g.title })} onClick={() => void move(g.id, index - 1)} style={{ minWidth: 44, minHeight: 44, border: "1px solid #94a3b8", borderRadius: 6 }}>↑</button>
-                  <button type="button" disabled={ordering || index === active.length - 1} aria-label={t("moveDown", { title: g.title })} onClick={() => void move(g.id, index + 1)} style={{ minWidth: 44, minHeight: 44, border: "1px solid #94a3b8", borderRadius: 6 }}>↓</button>
-                  <select aria-label={t("changeRank", { title: g.title })} disabled={ordering} value={index} onChange={e => void move(g.id, Number(e.target.value))} style={{ minHeight: 44, maxWidth: "100%", borderRadius: 6, background: isDarkMode ? "#1f2937" : "#fff", color: "inherit", border: "1px solid #94a3b8" }}>
-                    {active.map((_, rank) => <option key={rank} value={rank}>{t("rankLabel", { rank: rank + 1 })}</option>)}
-                  </select>
-                </div>}
                 {g.deadline && (
                   <div style={{ fontSize: 11, color: g.done ? (isDarkMode ? "#4b5563" : "#d1d5db") : (isDarkMode ? "#9ca3af" : "#6b7280"), marginTop: 2 }}>
                     {t("deadlineLabel", { date: g.deadline })}
@@ -398,6 +393,11 @@ export default function DreamView({
                 )}
               </div>
 
+              {!g.done && (
+                  <select aria-label={t("changeRank", { title: g.title })} disabled={ordering} value={index} onChange={e => void move(g.id, Number(e.target.value))} style={{ minHeight: 44, maxWidth: "100%", borderRadius: 6, background: isDarkMode ? "#1f2937" : "#fff", color: "inherit", border: "1px solid #94a3b8" }}>
+                    {active.map((_, rank) => <option key={rank} value={rank}>{t("rankLabel", { rank: rank + 1 })}</option>)}
+                  </select>
+              )}
               <button
                 onClick={async () => {
                   if (!window.confirm(tc("confirmDelete"))) return;

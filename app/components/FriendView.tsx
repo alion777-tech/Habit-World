@@ -286,14 +286,15 @@ export default function FriendView({ uid, currentUserName, isDarkMode = false }:
         return t("loginStatus.days", { days: diffDays });
     };
 
-    const UserCard = ({ user, showActivity = false }: { user: UserProfile, showActivity?: boolean }) => {
+    const renderUserCard = (user: UserProfile, showActivity = false) => {
         const isFollowing = followingList.some(u => u.uid === user.uid);
         const isMe = user.uid === uid;
+        const isMutual = !isMe && isFollowing && !!uid && (followingList.find(u => u.uid === user.uid)?.following ?? user.following ?? []).includes(uid);
         const loginStatus = user.showLastLogin ? formatLastLogin(user.lastLoginAt) : null;
 
         if (showActivity && user.recentAction) {
             return (
-                <div style={{
+                <div key={user.uid} style={{
                     marginBottom: 10,
                     padding: "12px 16px",
                     background: isDarkMode ? "rgba(99,102,241,0.1)" : "#f5f3ff",
@@ -314,53 +315,25 @@ export default function FriendView({ uid, currentUserName, isDarkMode = false }:
         }
 
         return (
-            <div style={{
-                padding: 12,
-                background: isDarkMode ? "#1f2937" : "#fff",
-                borderRadius: 12,
-                marginBottom: 10,
-                border: isDarkMode ? "1px solid #374151" : "1px solid #eee",
-            }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: "bold", fontSize: 14, color: isDarkMode ? "#fff" : "#000", display: "flex", alignItems: "center", gap: 4 }}>
-                            <span style={{ color: user.gender === "female" ? "#f472b6" : user.gender === "male" ? "#3b82f6" : "#888" }}>
-                                {user.gender === "female" ? "👩" : user.gender === "male" ? "👨" : "👤"}
-                            </span>
-                            {user.name}
-                        </div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
-                            {user.showDream && (
-                                <div style={{ fontSize: 11, color: "#6366f1" }}>🌈 {user.dream || t("secretDream")}</div>
-                            )}
-                            {loginStatus && (
-                                <div style={{ fontSize: 11, color: "#888" }}>🕒 {loginStatus}</div>
-                            )}
-                        </div>
-                    </div>
-                    {!isMe && (
-                        <button
-                            disabled={actionLoading === user.uid}
-                            onClick={() => isFollowing ? handleUnfollow(user.uid) : handleFollow(user.uid)}
-                            style={{
-                                fontSize: 11, padding: "5px 12px", borderRadius: 15, fontWeight: "bold", cursor: "pointer",
-                                border: isFollowing ? "1px solid #ccc" : "none",
-                                background: isFollowing ? "transparent" : "#4f46e5",
-                                color: isFollowing ? "#888" : "#fff",
-                                opacity: actionLoading === user.uid ? 0.7 : 1
-                            }}
-                        >
-                            {isFollowing ? t("following") : t("follow")}
-                        </button>
-                    )}
+            <details key={user.uid} style={{ position: "relative", padding: "8px 36px 8px 12px", background: isDarkMode ? "#1f2937" : "#fff", borderRadius: 10, marginBottom: 6, border: isDarkMode ? "1px solid #374151" : "1px solid #eee", color: isDarkMode ? "#f3f4f6" : "#1f2937" }}>
+                <summary style={{ cursor: "pointer", overflowWrap: "anywhere" }}>
+                    <strong style={{ fontSize: 14 }}>{user.name}</strong>
+                    {user.showDream && <div style={{ fontSize: 12, color: isDarkMode ? "#a5b4fc" : "#4f46e5", marginTop: 2 }}>🌈 {user.dream || t("secretDream")}</div>}
+                    {loginStatus && <div style={{ fontSize: 11, color: isDarkMode ? "#9ca3af" : "#64748b", marginTop: 2 }}>🕒 {loginStatus}</div>}
+                    {isMutual && <span role="img" aria-label={t("mutualFollow")} title={t("mutualFollow")} style={{ position: "absolute", right: 12, bottom: 8, color: "#ef4444", fontSize: 18, lineHeight: 1, pointerEvents: "none" }}>♥</span>}
+                </summary>
+                <div style={{ marginTop: 10, paddingTop: 8, borderTop: isDarkMode ? "1px solid #374151" : "1px solid #eee" }}>
+                    {user.isPublic && user.showGoal && !!user.publicGoals?.length && <div>
+                        <strong style={{ fontSize: 12 }}>{t("topGoals")}</strong>
+                        <ol style={{ paddingLeft: 24, listStyle: "decimal", margin: "6px 0 10px" }}>
+                            {user.publicGoals.slice(0, 3).map(goal => <li key={goal.id} style={{ fontSize: 13, marginBottom: 4, overflowWrap: "anywhere" }}>{goal.title}</li>)}
+                        </ol>
+                    </div>}
+                    {!isMe && <button type="button" disabled={actionLoading === user.uid} onClick={() => isFollowing ? handleUnfollow(user.uid) : handleFollow(user.uid)} style={{ fontSize: 12, minHeight: 36, padding: "6px 12px", borderRadius: 8, cursor: "pointer", border: "1px solid #94a3b8", background: isFollowing ? "transparent" : "#4f46e5", color: isFollowing ? "inherit" : "#fff" }}>
+                        {isFollowing ? t("following") : t("follow")}
+                    </button>}
                 </div>
-                {user.isPublic && user.showGoal && !!user.publicGoals?.length && <div style={{ marginTop: 12 }}>
-                    <strong style={{ fontSize: 12 }}>{t("topGoals")}</strong>
-                    <ol style={{ paddingLeft: 24, listStyle: "decimal", marginTop: 6 }}>
-                        {user.publicGoals.slice(0, 3).map(goal => <li key={goal.id} style={{ fontSize: 13, marginBottom: 6, overflowWrap: "anywhere" }}>{goal.title}</li>)}
-                    </ol>
-                </div>}
-            </div>
+            </details>
         );
     };
 
@@ -397,7 +370,7 @@ export default function FriendView({ uid, currentUserName, isDarkMode = false }:
                                 const dateB = b.recentAction?.date?.toDate?.() || new Date(0);
                                 return dateB.getTime() - dateA.getTime();
                             })
-                            .map(u => <UserCard key={u.uid} user={u} showActivity={true} />)}
+                            .map(u => renderUserCard(u, true))}
                         {followingList.filter(u => u.recentAction).length === 0 && (
                             <p style={{ textAlign: "center", color: "#888", fontSize: 13, marginTop: 40 }}>{t("noAction")}</p>
                         )}
@@ -406,7 +379,7 @@ export default function FriendView({ uid, currentUserName, isDarkMode = false }:
 
                 {activeTab === "following" && (
                     <>
-                        {followingList.map(u => <UserCard key={u.uid} user={u} />)}
+                        {followingList.map(u => renderUserCard(u))}
                         {followingList.length === 0 && <p style={{ textAlign: "center", color: "#888", fontSize: 13, marginTop: 40 }}>{t("noFollowing")}</p>}
                     </>
                 )}
@@ -446,19 +419,19 @@ export default function FriendView({ uid, currentUserName, isDarkMode = false }:
                             <p>{t("searchError")}</p>
                             <button onClick={() => setRetryCount(count => count + 1)}>{t("retry")}</button>
                         </div>}
-                        {!loading && !discoveryError && searchResults.map(u => <UserCard key={u.uid} user={u} />)}
+                        {!loading && !discoveryError && searchResults.map(u => renderUserCard(u))}
                         {!searchTerm.trim() && !loading && !discoveryError && (
                             <>
                                 <h3 style={{ color: isDarkMode ? "#fff" : "#000" }}>{t("recommendedUsers")}</h3>
                                 {recommendations.filter(item => item.reasons.length > 0).map(({ user, reasons }) => (
                                     <div key={user.uid}>
                                         <p style={{ fontSize: 12, color: isDarkMode ? "#a5b4fc" : "#4f46e5" }}>{reasons.map(reason => t(reason)).join(" · ")}</p>
-                                        <UserCard user={user} />
+                                        {renderUserCard(user)}
                                     </div>
                                 ))}
                                 {recommendations.every(item => item.reasons.length === 0) && <p style={{ color: "#888", fontSize: 13 }}>{t("noRecommendations")}</p>}
                                 {recommendations.some(item => item.reasons.length === 0) && <h3 style={{ color: isDarkMode ? "#fff" : "#000" }}>{t("otherUsers")}</h3>}
-                                {recommendations.filter(item => item.reasons.length === 0).map(({ user }) => <UserCard key={user.uid} user={user} />)}
+                                {recommendations.filter(item => item.reasons.length === 0).map(({ user }) => renderUserCard(user))}
                             </>
                         )}
                         {hasSearched && !loading && !discoveryError && searchResults.length === 0 && (
