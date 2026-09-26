@@ -1,6 +1,8 @@
 // lib/habits/updateHabitFields.ts
 import { doc, updateDoc, runTransaction } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
+import { isTestAdminRegistration } from "../testAccessModel";
+import { matchesHabitTestDay, type HabitTestContext } from "./habitTestDate";
 import { LocalStorageRepository } from "../localActions";
 import { LS_KEYS } from "../dataPersistence";
 import { createRoom, recoverFromHabit } from "../fairyRoomModel";
@@ -10,9 +12,18 @@ import type { UserProfile } from "@/types/appTypes";
 export const updateHabitFields = async (
   uid: string | null,
   habitId: string,
-  fields: Record<string, any>
+  fields: Record<string, any>,
+  testContext?: HabitTestContext
 ) => {
   if (!habitId) return;
+
+  if (testContext) {
+    const user = auth.currentUser;
+    if (!uid || testContext.uid !== uid || user?.uid !== uid || user.isAnonymous
+      || (await user.getIdTokenResult()).signInProvider !== "google.com") {
+      throw new Error("テスト権限が変更されました。日付を確認して再試行してください。");
+    }
+  }
 
   if (uid) {
     const habitRef = doc(db, "users", uid, "habits", habitId);
@@ -23,6 +34,15 @@ export const updateHabitFields = async (
     const now = Date.now();
     const today = formatDateToJST(new Date(now));
     await runTransaction(db, async tx => {
+      if (testContext) {
+        const registration = (await tx.get(doc(db, "testAdmins", uid))).data();
+        const session = (await tx.get(doc(db, "testSessions", uid))).data();
+        if (auth.currentUser?.uid !== uid || !isTestAdminRegistration(registration)
+          || session?.enabled !== true || session.dayOffset !== testContext.dayOffset
+          || !matchesHabitTestDay(testContext, Date.now())) {
+          throw new Error("テスト日付または権限が変更されました。再試行してください。");
+        }
+      }
       const habit = (await tx.get(habitRef)).data();
       const profileRef = doc(db, "users", uid);
       const profile = (await tx.get(profileRef)).data() as UserProfile | undefined;

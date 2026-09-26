@@ -11,7 +11,9 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import HabitView from "../components/HabitView";
-import TestAdminMenu from "../components/TestAdminMenu";
+import { TestAdminControls } from "../components/TestAdminMenu";
+import { useTestAccess } from "@/hooks/useTestAccess";
+import { habitTestDate } from "@/lib/habits/habitTestDate";
 import FairyRoom from "../components/FairyRoom";
 import FairyChamber from "../components/FairyChamber";
 import { receiveFairyEgg, recordFairyLogin } from "@/lib/fairyProgressActions";
@@ -125,6 +127,15 @@ export default function Home() {
     calendarDays,
     dailyStats,
   } = useHabitCalendar(habits);
+
+  const testAccess = useTestAccess();
+  const habitDate = habitTestDate(todayStr, uid, testAccess);
+  const [testDateBusy, setTestDateBusy] = useState(false);
+  const [habitBusy, setHabitBusy] = useState(false);
+  const habitLock = useRef(false);
+  const [habitError, setHabitError] = useState("");
+  const habitUnavailable = testDateBusy || habitBusy || (!!uid && (testAccess.uid !== uid || testAccess.loading))
+    || habitsLoadedFor !== (uid || "local");
 
 
 
@@ -290,8 +301,8 @@ export default function Home() {
 
   // 習慣表示用の日付 (今日 or 昨日)
   const [habitDisplayDate, setHabitDisplayDate] = useState<"today" | "yesterday">("today");
-  const activeHabitDate = habitDisplayDate === "today" ? todayStr : yesterdayStr;
-  const activeHabitDow = habitDisplayDate === "today" ? todayDow : (todayDow === 0 ? 6 : todayDow - 1);
+  const activeHabitDate = habitDisplayDate === "today" ? habitDate.today : habitDate.yesterday;
+  const activeHabitDow = habitDisplayDate === "today" ? habitDate.dayOfWeek : (habitDate.dayOfWeek + 6) % 7;
 
   // 初回読み込み時にローカルストレージからダークモード設定を取得
   useEffect(() => {
@@ -451,41 +462,48 @@ export default function Home() {
   };
 
   const handleToggleHabit = async (habitId: string, date = activeHabitDate) => {
+    if (habitUnavailable || habitLock.current || auth.currentUser?.uid !== (uid ?? undefined)) return;
     const h = habits.find(h => h.id === habitId);
     if (!h) return;
+    habitLock.current = true; setHabitBusy(true); setHabitError("");
+    try {
 
-    const result = calcToggleHabit(
-      h,
-      date,
-      todayStr,
-      yesterdayStr,
-      profile.stats?.earnedHabitStreakBonuses ?? []
-    );
-    await updateHabitFields(uid, h.id, result.fields);
+      const result = calcToggleHabit(
+        h,
+        date,
+        habitDate.today,
+        habitDate.yesterday,
+        profile.stats?.earnedHabitStreakBonuses ?? []
+      );
+      await updateHabitFields(uid, h.id, result.fields, habitDate.context);
+      if (auth.currentUser?.uid !== (uid ?? undefined)) return;
 
-    if (result.kind === "check") {
-      const first = habits.every(item => item.pointHistory.length === 0);
-      const days = result.fields.dailyStreak;
-      const newLevel = Math.floor((totalPoint + result.pointDelta) / 100) + 1;
-      announceFairy(first ? "firstHabit" : date === todayStr && days === 30 ? "streak30"
-        : date === todayStr && days === 7 ? "streak7"
-        : newLevel > level ? "levelUp" : "habitCompleted");
-    }
+      if (result.kind === "check") {
+        const first = habits.every(item => item.pointHistory.length === 0);
+        const days = result.fields.dailyStreak;
+        const newLevel = Math.floor((totalPoint + result.pointDelta) / 100) + 1;
+        announceFairy(first ? "firstHabit" : date === habitDate.today && days === 30 ? "streak30"
+          : date === habitDate.today && days === 7 ? "streak7"
+          : newLevel > level ? "levelUp" : "habitCompleted");
+      }
 
-    if (result.earnedHabitStreakBonus) {
-      const newStats = {
-        ...(profile.stats || {}),
-        earnedHabitStreakBonuses: result.earnedHabitStreakBonus.earnedBonuses,
-      };
+      if (result.earnedHabitStreakBonus) {
+        const newStats = {
+          ...(profile.stats || {}),
+          earnedHabitStreakBonuses: result.earnedHabitStreakBonus.earnedBonuses,
+        };
 
-      await saveUserProfile(uid, { stats: newStats });
-      setProfile(prev => ({
-        ...prev,
-        stats: newStats,
-      }));
-    }
+        await saveUserProfile(uid, { stats: newStats });
+        setProfile(prev => ({
+          ...prev,
+          stats: newStats,
+        }));
+      }
 
-    if (result.alertMessage) alert(result.alertMessage);
+      if (result.alertMessage) alert(result.alertMessage);
+    } catch (error) {
+      setHabitError(error instanceof Error ? error.message : "保存できませんでした。再試行してください。");
+    } finally { habitLock.current = false; setHabitBusy(false); }
   };
 
   const handleDeleteHabit = async (id: string) => {
@@ -716,7 +734,7 @@ export default function Home() {
         {fairyError && <p role="alert">{fairyError}<button onClick={() => setFairyRetry(v => v + 1)}>再試行</button></p>}
         <details className="app-menu"><summary><span>☰ {locale === "ja" ? "メニュー" : "Menu"}</span><time className="menu-today" dateTime={todayStr} suppressHydrationWarning>{locale === "ja" ? `${todayStr.slice(0, 4)}年${Number(todayStr.slice(5, 7))}月${Number(todayStr.slice(8, 10))}日` : todayStr}</time></summary>
         <div data-opening="login"><AuthBox isDarkMode={isDarkMode} /></div>
-        <TestAdminMenu locale={locale} />
+        <TestAdminControls locale={locale} access={testAccess} disabled={habitBusy || testDateBusy} onBusyChange={setTestDateBusy} />
         <button onClick={() => window.dispatchEvent(new Event("habit-world-replay-opening"))} style={{ padding: "10px 14px", border: "1px solid #94a3b8", borderRadius: 8, cursor: "pointer", marginBottom: 12 }}>オープニングをもう一度見る</button>
 
 
@@ -993,7 +1011,9 @@ export default function Home() {
             ? <FairyChamber key={`room-${uid}`} uid={uid} fairy={profile.fairy} room={profile.fairyRoom} totalPoints={totalPoint} loginDays={profile.stats?.loginDays ?? 0} />
             : <FairyChamberPreview key={`trial-${uid || "guest"}`} embedded isDarkMode={isDarkMode} />}
         </>)}
-        {view === "home" && <HomeView key={`home-${uid || "local"}`} uid={uid} todos={todos} habits={habits} today={todayStr} isDarkMode={isDarkMode} onTodo={() => setView("todo")} onHabit={() => setView("habit")} onToggleHabit={id => handleToggleHabit(id, todayStr)} />}
+        {(view === "habit" || view === "home") && habitDate.context && <p role="status">習慣テスト日付：{habitDate.today}（ToDo・妖精・冒険・ログインは実日付のまま）</p>}
+        {(view === "habit" || view === "home") && habitError && <p role="alert">{habitError}</p>}
+        {view === "home" && <HomeView key={`home-${uid || "local"}`} uid={uid} todos={todos} habits={habits} today={todayStr} habitToday={habitDate.today} habitDisabled={habitUnavailable} isDarkMode={isDarkMode} onTodo={() => setView("todo")} onHabit={() => setView("habit")} onToggleHabit={id => handleToggleHabit(id, habitDate.today)} />}
 
         {view === "habit" && (
           <HabitView
@@ -1013,6 +1033,7 @@ export default function Home() {
             setEditingId={setEditingId}
             editingText={editingText}
             setEditingText={setEditingText}
+            completionDisabled={habitUnavailable}
             onToggleHabit={id => handleToggleHabit(id)}
             onSaveEdit={saveEdit}
             onDeleteHabit={handleDeleteHabit}

@@ -49,6 +49,7 @@ type Props = {
   // 一覧の操作（Home側の関数を呼ぶ）
   // =========================
   onToggleHabit: (habitId: string) => void;
+  completionDisabled?: boolean;
   onSaveEdit: (habitId: string) => void;
   onDeleteHabit: (habitId: string) => void;
   isDarkMode?: boolean;
@@ -75,6 +76,7 @@ export default function HabitView({
   editingText,
   setEditingText,
   onToggleHabit,
+  completionDisabled = false,
   onSaveEdit,
   onDeleteHabit,
 
@@ -262,6 +264,7 @@ export default function HabitView({
                 <input
                   type="checkbox"
                   checked={isDoneToday}
+                  disabled={completionDisabled}
                   onChange={() => {
                     onToggleHabit(h.id);
                   }}
