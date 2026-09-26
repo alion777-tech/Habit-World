@@ -20,7 +20,7 @@ function load(file, resolve) {
 const docs = new Map(); let fail = false, serial = 0;
 const snap = ref => ({ ref, id: ref.split('/').at(-1), exists: () => docs.has(ref), data: () => structuredClone(docs.get(ref)) });
 const api = {
-  doc: (_db, ...parts) => parts.length ? parts.join('/') : `new-${++serial}`,
+  doc: (_db, ...parts) => parts.length ? parts.join('/') : `${_db}/new-${++serial}`,
   collection: (_db, ...parts) => parts.join('/'),
   getDocs: async ref => ({ docs: [...docs.keys()].filter(k => k.startsWith(ref + '/') && k.split('/').length === ref.split('/').length + 1).map(snap) }),
   deleteField: () => ({ deleteField: true }),
@@ -70,6 +70,20 @@ const progressActions = load('lib/fairyProgressActions.ts', resolve);
   global.localStorage = { getItem: () => JSON.stringify(wardrobeModel.initialWardrobe()) };
   assert.equal(legacy.legacyShopPurchases('me').length, 0);
   delete global.localStorage;
+  // Creation and its daily counter commit together, without touching rewards.
+  docs.set('users/me', { stats: { lastActionDate: dates.formatDateToJST(new Date()), todosAddedToday: 3, habitsAddedToday: 2 }, bonusPoints: 50 });
+  const countTodos = () => [...docs.keys()].filter(key => key.startsWith('users/me/todos/')).length;
+  const initialTodos = countTodos();
+  fail = true;
+  await assert.rejects(todoActions.addTodo('me', 'failed addition', {}, true));
+  fail = false;
+  assert.equal(countTodos(), initialTodos);
+  assert.equal(docs.get('users/me').stats.todosAddedToday, 3);
+  await todoActions.addTodo('me', 'saved addition', {}, true);
+  assert.equal(countTodos(), initialTodos + 1);
+  assert.equal(docs.get('users/me').stats.todosAddedToday, 4);
+  assert.equal(docs.get('users/me').stats.habitsAddedToday, 2);
+  assert.equal(docs.get('users/me').bonusPoints, 50);
   // A first real login creates an egg without the opening tutorial or local flags.
   docs.set('users/me', { stats: { lastActionDate: dates.formatDateToJST(new Date()) } });
   await progressActions.recordFairyLogin('me');
@@ -131,9 +145,9 @@ const progressActions = load('lib/fairyProgressActions.ts', resolve);
   assert.equal(docs.get('users/me').fairy.status, 'ready');
   const beforeLogin = structuredClone(docs.get('users/me'));
   await progressActions.recordFairyLogin('me');
-  assert.deepEqual(docs.get('users/me').fairy, beforeLogin.fairy);
-  assert.deepEqual(docs.get('users/me').fairyRoom, beforeLogin.fairyRoom);
-  assert.deepEqual(docs.get('users/me').economy, beforeLogin.economy);
+  assert.equal(JSON.stringify(docs.get('users/me').fairy), JSON.stringify(beforeLogin.fairy));
+  assert.equal(JSON.stringify(docs.get('users/me').fairyRoom), JSON.stringify(beforeLogin.fairyRoom));
+  assert.equal(JSON.stringify(docs.get('users/me').economy), JSON.stringify(beforeLogin.economy));
   await roomActions.syncFairyRoom('me', 1);
   assert.throws(() => shopModel.tradeRoom({ ...roomModel.createRoom(0), gold: 1999 }, buy, 0), /ゴールド/);
   assert.throws(() => shopModel.tradeRoom({ ...roomModel.createRoom(0), gold: 5000 }, { type: 'buy', shop: 'fairy', productId: 'avatar-hair-long', requestId: 'locked' }, 0), /クローゼット/);

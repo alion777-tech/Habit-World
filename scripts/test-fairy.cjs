@@ -13,7 +13,7 @@ function harness(reduced = false) {
     addEventListener: (name, fn) => events.set(prefix + name, fn),
     removeEventListener: (name) => events.delete(prefix + name),
   });
-  const element = { offsetWidth: 64, style: {}, dataset: {}, firstElementChild: { style: {} } };
+  const element = { offsetWidth: 64, offsetHeight: 96, style: {}, dataset: {}, firstElementChild: { style: {} } };
   const media = { matches: reduced, ...target('media:') };
   const doc = { hidden: false, ...target('doc:') };
   const win = { innerWidth: 800, innerHeight: 600, matchMedia: () => media, ...target('win:') };
@@ -31,7 +31,7 @@ function harness(reduced = false) {
       useState: (initial) => [initial, () => {}],
       useEffect: (fn) => { effect = fn; },
     } : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : name === 'next-intl'
-      ? { useLocale: () => 'ja' } : { default: {} },
+      ? { useLocale: () => 'ja' } : name.includes('useWardrobe') ? { useWardrobe: () => ({ purchased: [], equipped: {}, colors: {} }) } : { default: {} },
   };
   vm.runInNewContext(code, context);
   const tree = context.exports.default();

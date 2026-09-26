@@ -63,7 +63,8 @@ const getStreakAtDate = (history: { date: string }[], targetDate: string): numbe
   let streak = 0;
   let current = targetDate;
 
-  while (history.some((h) => h.date === current)) {
+  const completedDates = new Set(history.map(h => h.date));
+  while (completedDates.has(current)) {
     streak++;
     const d = new Date(current);
     d.setDate(d.getDate() - 1);

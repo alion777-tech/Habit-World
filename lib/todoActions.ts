@@ -8,11 +8,32 @@ import type { Todo, TodoCategory } from "@/types/appTypes";
 import { completionChanges } from "./todoModel";
 import { formatDateToJST } from "./habits/dateUtils";
 
-export async function addTodo(uid: string | null, text: string, fields: Partial<Todo> = {}) {
+export async function addTodo(uid: string | null, text: string, fields: Partial<Todo> = {}, trackCreation = false) {
   if (!text.trim()) return;
   const data = { ...fields, text: text.trim(), done: false, createdAt: new Date().toISOString() };
-  if (uid) await addDoc(collection(db, "users", uid, "todos"), { ...data, createdAt: serverTimestamp() });
-  else Local.addItem(LS_KEYS.TODOS, { ...data, id: "local_todo_" + crypto.randomUUID() });
+  const today = formatDateToJST(new Date());
+  const creationStats = (stats: Record<string, any> = {}) => {
+    const newDay = stats.lastActionDate !== today;
+    return { ...stats, lastActionDate: today,
+      goalsAddedToday: newDay ? 0 : (stats.goalsAddedToday || 0),
+      habitsAddedToday: newDay ? 0 : (stats.habitsAddedToday || 0),
+      todosAddedToday: (newDay ? 0 : (stats.todosAddedToday || 0)) + 1,
+      goalsCreatedCount: stats.goalsCreatedCount || 0,
+      habitsCreatedCount: stats.habitsCreatedCount || 0 };
+  };
+  if (uid && trackCreation) {
+    const todoRef = doc(collection(db, "users", uid, "todos"));
+    const profileRef = doc(db, "users", uid);
+    await runTransaction(db, async tx => {
+      const profile = (await tx.get(profileRef)).data() || {};
+      tx.set(todoRef, { ...data, createdAt: serverTimestamp() });
+      tx.set(profileRef, { stats: creationStats(profile.stats) }, { merge: true });
+    });
+  } else if (uid) await addDoc(collection(db, "users", uid, "todos"), { ...data, createdAt: serverTimestamp() });
+  else {
+    Local.addItem(LS_KEYS.TODOS, { ...data, id: "local_todo_" + crypto.randomUUID() });
+    if (trackCreation) { const profile = Local.getProfile() || {}; Local.setProfile({ ...profile, stats: creationStats(profile.stats) }); }
+  }
 }
 export async function toggleTodo(uid: string | null, todoId: string, done: boolean) {
   const now = new Date().toISOString();

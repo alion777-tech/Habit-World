@@ -7,8 +7,8 @@ import { addDays, weekEnd, isToday, isOverdue, reminderActive, DEFAULT_CATEGORIE
 import styles from "./TodoView.module.css";
 
 type Props = { uid: string | null; todos: Todo[]; categories?: TodoCategory[]; today: string; isDarkMode?: boolean;
-  checkLimit: (type: "todos") => boolean; incrementStats: (type: "todos") => Promise<void> };
-export default function TodoView({ uid, todos, categories = DEFAULT_CATEGORIES, today, isDarkMode, checkLimit, incrementStats }: Props) {
+  checkLimit: (type: "todos") => boolean };
+export default function TodoView({ uid, todos, categories = DEFAULT_CATEGORIES, today, isDarkMode, checkLimit }: Props) {
   const ja = useLocale() === "ja";
   const l = (jp: string, en: string) => ja ? jp : en;
   const [tab, setTab] = useState("all");
@@ -25,6 +25,8 @@ export default function TodoView({ uid, todos, categories = DEFAULT_CATEGORIES, 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [addingText, setAddingText] = useState("");
+  const busyRef = useRef(false);
   const [categoryName, setCategoryName] = useState("");
   const [renameId, setRenameId] = useState("");
   const [subtask, setSubtask] = useState("");
@@ -47,17 +49,25 @@ export default function TodoView({ uid, todos, categories = DEFAULT_CATEGORIES, 
   const name = (c: TodoCategory) => !ja && DEFAULT_CATEGORIES.some(d => d.id === c.id && d.name === c.name)
     ? ({ shopping: "Shopping", work: "Work", home: "Home", paperwork: "Paperwork", other: "Other" }[c.id] || c.name) : c.name;
   const run = async (fn: () => Promise<void>) => {
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true); setError(""); setNotice("");
     try { await fn(); } catch { setError(l("保存できませんでした。通信状態を確認して再試行してください。", "Could not save. Check your connection and retry.")); }
-    finally { setBusy(false); }
+    finally { busyRef.current = false; setBusy(false); }
   };
   const patch = (fields: Partial<Todo>) => setDraft(d => d ? { ...d, ...fields } : d);
   const newDraft = (): Todo => ({ id: "", text: quick, done: false, priority: "medium", categoryId: category && category !== "none" ? category : null, memo: "", subtasks: [] });
   const create = async () => {
     if (!quick.trim() || !checkLimit("todos")) return;
-    await addTodo(uid, quick, { categoryId: category && category !== "none" ? category : null, priority: "medium" });
-    setQuick(""); await incrementStats("todos");
+    const submitted = quick;
+    setQuick(""); setAddingText(submitted);
+    try {
+      await addTodo(uid, submitted, { categoryId: category && category !== "none" ? category : null, priority: "medium" }, true);
+    } catch (error) {
+      setQuick(current => current || submitted);
+      setNotice(l("追加できなかったToDo: ", "Task not added: ") + submitted);
+      throw error;
+    } finally { setAddingText(""); }
   };
   const filtered = todos.filter(t => {
     if (!t.text.toLocaleLowerCase().includes(search.toLocaleLowerCase())) return false;
@@ -86,10 +96,11 @@ export default function TodoView({ uid, todos, categories = DEFAULT_CATEGORIES, 
   return <section className={styles.root} data-dark={isDarkMode}>
     <h2>ToDo</h2><p className={styles.hint}>{l("仕事・用事を整理。完了で5pt（各タスク初回のみ）。", "Organize tasks and errands. Earn 5pt on first completion.")}</p>
     {error && <p role="alert" className={styles.error}>{error}</p>}{notice && <p role="status">{notice}</p>}
+    {addingText && <p role="status">{l("追加中: ", "Adding: ")}{addingText}</p>}
     <form className={styles.row} onSubmit={e => { e.preventDefault(); void run(create); }}>
       <input aria-label={l("タスク名", "Task name")} placeholder={categories.find(c => c.id === category)?.shopping ? l("牛乳、卵… 1品ずつ追加", "Milk, eggs… add one item") : l("やることを追加…", "Add a task…")} value={quick} onChange={e => setQuick(e.target.value)} maxLength={300}/>
       <button disabled={busy || !quick.trim()} className={styles.primary}>{l("追加", "Add")}</button>
-      <button type="button" onClick={() => setDraft(newDraft())}>{l("詳細", "Details")}</button>
+      <button type="button" disabled={busy} onClick={() => setDraft(newDraft())}>{l("詳細", "Details")}</button>
     </form>
     <div className={styles.tabs} aria-label={l("表示切替", "Views")}>{[["today", l("今日", "Today")], ["overdue", l("期限切れ", "Overdue")], ["upcoming", l("今後", "Upcoming")], ["all", l("すべて", "All")], ["categories", l("カテゴリ", "Categories")], ["completed", l("完了済み", "Completed")]].map(([id, text]) => <button key={id} aria-pressed={tab === id} onClick={() => { setTab(id); setStatus("open"); setLimit(50); }}>{text}</button>)}</div>
     {tab === "categories" && <div className={styles.card}>
@@ -137,8 +148,8 @@ export default function TodoView({ uid, todos, categories = DEFAULT_CATEGORIES, 
         if (draft.recurrence && !draft.startDate && !draft.dueDate) { setError(l("繰り返しには開始日または期限が必要です。", "Repeating tasks need a start or due date.")); return; }
         const { id, ...fields } = draft;
         if (id) { const { createdAt, done, completedAt, rewarded, nextTodoId, ...editable } = fields; void createdAt; void done; void completedAt; void rewarded; void nextTodoId; await updateTodo(uid, id, editable); }
-        else { if (!checkLimit("todos")) return; await addTodo(uid, draft.text, fields); }
-        setDraft(null); setQuick(""); if (!id) await incrementStats("todos");
+        else { if (!checkLimit("todos")) return; await addTodo(uid, draft.text, fields, true); }
+        setDraft(null); setQuick("");
       }); }}>
         <h3>{l("ToDoの詳細", "Task details")}</h3>
         {error && <p role="alert" className={styles.error}>{error}</p>}

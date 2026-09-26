@@ -1,4 +1,5 @@
 "use client";
+import { afterPaint } from "@/lib/afterPaint";
 import { syncEconomy } from "@/lib/economyActions";
 
 import { useEffect, useState, useRef } from "react";
@@ -88,7 +89,6 @@ export default function Home() {
   const [editingGoalText, setEditingGoalText] = useState("");
   const [todos, setTodos] = useState<Todo[]>([]);
   const [uid, setUid] = useState<string | null>(null);
-  const [todoInput, setTodoInput] = useState("");
   const [earnedTitles, setEarnedTitles] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -129,6 +129,11 @@ export default function Home() {
     dailyStats,
   } = useHabitCalendar(habits);
 
+  // Keep speculative completion separate from reward/economy inputs.
+  const [pendingHabit, setPendingHabit] = useState<{ uid: string | null; id: string; fields: Partial<Habit> } | null>(null);
+  const displayHabits = pendingHabit?.uid === uid ? habits.map(h => h.id === pendingHabit.id ? { ...h, ...pendingHabit.fields } : h) : habits;
+  const loginStatusRef = useRef<{ uid: string; lastLoginAt: UserProfile["lastLoginAt"] } | null>(null);
+  const [goalsLoadedFor, setGoalsLoadedFor] = useState<string | null>(null);
   const testAccess = useTestAccess();
   const canPreviewFairyRoom = !!uid && !isAnonymous && testAccess.uid === uid && !testAccess.loading && !!testAccess.label && testAccess.enabled;
   const habitDate = habitTestDate(todayStr, uid, testAccess);
@@ -162,9 +167,20 @@ export default function Home() {
     setEarnedTitles([]);
     setDreamInput("");
     setGoalInput("");
-    setTodoInput("");
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    if (!uid) return;
+    return onSnapshot(doc(db, "users", uid, "public", "status"), snapshot => {
+      if (auth.currentUser?.uid !== uid) return;
+      const lastLoginAt = snapshot.data()?.lastLoginAt;
+      if (lastLoginAt !== undefined) {
+        loginStatusRef.current = { uid, lastLoginAt };
+        setProfile(p => p.uid === uid ? { ...p, lastLoginAt } : p);
+      }
+    }, error => console.error("[LoginStatus]", error));
+  }, [uid]);
 
   // 👤 プロフィールのリアルタイム監視
   useEffect(() => {
@@ -175,15 +191,7 @@ export default function Home() {
       try {
         if (data) {
           let lastLoginAt = data.lastLoginAt;
-          if (uid) {
-            try {
-              const statusRef = doc(db, "users", uid, "public", "status");
-              const statusSnap = await getDoc(statusRef);
-              if (statusSnap.exists()) {
-                lastLoginAt = statusSnap.data().lastLoginAt;
-              }
-            } catch (e) {}
-          }
+          if (uid && loginStatusRef.current?.uid === uid) lastLoginAt = loginStatusRef.current.lastLoginAt ?? lastLoginAt;
 
           const p: UserProfile = {
             ...data,
@@ -247,26 +255,21 @@ export default function Home() {
       }));
       setGoals(formatted);
 
-      // 🔹 統計データの整合性チェック (既存ユーザーのデータ移行用)
-      if (profile.uid && !isLoading) {
-        const achievedCount = formatted.filter(g => g.done).length;
-        const currentCount = profile.stats?.goalsAchievedCount || 0;
-
-        // 実際の達成数と統計がズレていたら修正
-        if (achievedCount !== currentCount) {
-          console.log(`[StatsCorrection] Fixing goalsAchievedCount: ${currentCount} -> ${achievedCount}`);
-
-          const newStats = { ...(profile.stats || {}), goalsAchievedCount: achievedCount };
-          saveUserProfile(uid, { stats: newStats });
-          setProfile(prev => ({ ...prev, stats: newStats }));
-        }
-      }
+      setGoalsLoadedFor(uid || "local");
     });
 
     return () => unsub();
-  }, [uid, profile.uid, profile.stats, profile.bonusPoints, isLoading]);
+  }, [uid]);
 
 
+
+  useEffect(() => {
+    if (isLoading || goalsLoadedFor !== (uid || "local") || profile.uid !== (uid || "local")) return;
+    const achievedCount = goals.filter(g => g.done).length;
+    if (achievedCount === (profile.stats?.goalsAchievedCount || 0)) return;
+    const stats = { ...profile.stats, goalsAchievedCount: achievedCount };
+    void saveUserProfile(uid, { stats }).catch(error => console.error("[StatsCorrection]", error));
+  }, [uid, goalsLoadedFor, goals, profile.uid, profile.stats, isLoading]);
 
   useEffect(() => {
     if (uid) void syncPublicGoals(uid).catch(error => console.error("[PublicGoals] Sync failed", error));
@@ -469,7 +472,14 @@ export default function Home() {
     if (!h) return;
     habitLock.current = true; setHabitBusy(true); setHabitError("");
     try {
-
+      // Presentation only: never pass this provisional history to persistence or rewards.
+      const history = h.pointHistory ?? [];
+      const wasDone = history.some(entry => entry.date === date);
+      setPendingHabit({ uid, id: h.id, fields: { pointHistory: wasDone
+        ? history.filter(entry => entry.date !== date)
+        : [...history, { date, point: 0 }] } });
+      await afterPaint();
+      if (auth.currentUser?.uid !== (uid ?? undefined)) return;
       const result = calcToggleHabit(
         h,
         date,
@@ -480,6 +490,8 @@ export default function Home() {
       await updateHabitFields(uid, h.id, result.fields, habitDate.context);
       if (auth.currentUser?.uid !== (uid ?? undefined)) return;
 
+      setHabits(list => list.map(item => item.id === h.id ? { ...item, ...result.fields } : item));
+      setPendingHabit(null);
       if (result.kind === "check") {
         const first = habits.every(item => item.pointHistory.length === 0);
         const days = result.fields.dailyStreak;
@@ -504,8 +516,9 @@ export default function Home() {
 
       if (result.alertMessage) alert(result.alertMessage);
     } catch (error) {
+      if (auth.currentUser?.uid !== (uid ?? undefined)) return;
       setHabitError(error instanceof Error ? error.message : "保存できませんでした。再試行してください。");
-    } finally { habitLock.current = false; setHabitBusy(false); }
+    } finally { setPendingHabit(null); habitLock.current = false; setHabitBusy(false); }
   };
 
   const handleDeleteHabit = async (id: string) => {
@@ -654,15 +667,6 @@ export default function Home() {
     setDaysOfWeek([]);
   };
 
-  const handleAddTodo = async () => {
-    if (!todoInput.trim()) return;
-    if (!checkLimit("todos")) return;
-
-    const { addTodo } = await import("@/lib/todoActions");
-    await addTodo(uid, todoInput.trim());
-    await incrementStats("todos");
-    setTodoInput("");
-  };
 
   const streak = (() => {
     let count = 0;
@@ -687,7 +691,7 @@ export default function Home() {
     return () => { cancelled = true; };
   }, [uid, isAnonymous, isLoading, todayStr, profile.fairy?.status, fairyRetry]);
 
-  const visibleHabits = habits
+  const visibleHabits = displayHabits
     .filter(h => {
       if (h.type === "daily") return true;
       if (h.type === "weekly" && h.daysOfWeek?.includes(activeHabitDow)) return true;
@@ -1034,7 +1038,7 @@ export default function Home() {
         </>)}
         {(view === "habit" || view === "home") && habitDate.context && <p role="status">習慣テスト日付：{habitDate.today}（ToDo・妖精・冒険・ログインは実日付のまま）</p>}
         {(view === "habit" || view === "home") && habitError && <p role="alert">{habitError}</p>}
-        {view === "home" && <HomeView key={`home-${uid || "local"}`} uid={uid} todos={todos} habits={habits} today={todayStr} habitToday={habitDate.today} habitDisabled={habitUnavailable} isDarkMode={isDarkMode} onTodo={() => setView("todo")} onHabit={() => setView("habit")} onToggleHabit={id => handleToggleHabit(id, habitDate.today)} />}
+        {view === "home" && <HomeView key={`home-${uid || "local"}`} uid={uid} todos={todos} habits={displayHabits} today={todayStr} habitToday={habitDate.today} habitDisabled={habitUnavailable} isDarkMode={isDarkMode} onTodo={() => setView("todo")} onHabit={() => setView("habit")} onToggleHabit={id => handleToggleHabit(id, habitDate.today)} />}
 
         {view === "habit" && (
           <HabitView
@@ -1124,7 +1128,6 @@ export default function Home() {
             categories={profile.todoCategories}
             isDarkMode={isDarkMode}
             checkLimit={checkLimit}
-            incrementStats={incrementStats}
           />
         )}
 

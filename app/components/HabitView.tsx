@@ -257,7 +257,7 @@ export default function HabitView({
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                transition: "all 0.2s"
+                // Completion colors change in the same frame as the checkbox.
               }}
             >
               <div style={{ cursor: "pointer", display: "flex", alignItems: "center", flex: 1 }}>

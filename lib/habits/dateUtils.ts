@@ -1,13 +1,14 @@
 /**
  * 日本時間 (JST) での日付文字列 (YYYY-MM-DD) を取得する
  */
-export const formatDateToJST = (date: Date): string => {
-    const formatter = new Intl.DateTimeFormat("ja-JP", {
+const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
         timeZone: "Asia/Tokyo",
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
     });
+export const formatDateToJST = (date: Date): string => {
+    const formatter = dateFormatter;
     // ja-JP format is YYYY/MM/DD by default, but we ensure it as string components
     const parts = formatter.formatToParts(date);
     const y = parts.find((p) => p.type === "year")?.value;
@@ -19,11 +20,12 @@ export const formatDateToJST = (date: Date): string => {
 /**
  * 日本時間 (JST) での曜日 (0:日, 1:月, ..., 6:土) を取得する
  */
-export const getJSTDayOfWeek = (date: Date): number => {
-    const formatter = new Intl.DateTimeFormat("en-US", {
+const weekdayFormatter = new Intl.DateTimeFormat("en-US", {
         timeZone: "Asia/Tokyo",
         weekday: "short",
     });
+export const getJSTDayOfWeek = (date: Date): number => {
+    const formatter = weekdayFormatter;
     const weekday = formatter.format(date); // "Sun", "Mon", etc.
     const mapping: Record<string, number> = {
         Sun: 0,

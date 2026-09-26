@@ -58,12 +58,13 @@ export const useHabitCalendar = (habits: Habit[], authorizedDayOffset?: number) 
 
   // 達成率（カレンダー日付ベース）
   const dailyStats: DailyStat[] = useMemo(() => {
+    const completed = new Map(habits.map(h => [h.id, new Set((h.pointHistory ?? []).map(p => p.date))]));
     return calendarDays.map((date) => {
       const todaysHabits = habits.filter((h) => isHabitVisibleOnDate(h, date));
       const total = todaysHabits.length;
 
       const doneCount = todaysHabits.filter((h) =>
-        (h.pointHistory ?? []).some((p) => p.date === date)
+        completed.get(h.id)?.has(date)
       ).length;
 
       const rate = total === 0 ? 0 : Math.round((doneCount / total) * 100);
