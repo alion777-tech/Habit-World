@@ -1,6 +1,7 @@
 //app/components/DreamView.tsx
 "use client";
 
+import { useOptimisticCompletion } from "@/hooks/useOptimisticCompletion";
 import React, { useState } from "react";
 import { orderedGoals, moveGoal } from "@/lib/goalModel";
 import type { Goal, UserProfile } from "@/types/appTypes";
@@ -56,7 +57,7 @@ export default function DreamView({
   setDreamInput,
   isEditingDream,
   setIsEditingDream,
-  goals,
+  goals: savedGoals,
   goalInput,
   setGoalInput,
   deadline,
@@ -70,6 +71,9 @@ export default function DreamView({
   checkLimit,
   incrementStats,
 }: Props) {
+  const { items: goals, complete } = useOptimisticCompletion(savedGoals, uid);
+  const [completionError, setCompletionError] = useState("");
+  const [completing, setCompleting] = useState(false);
   const t = useTranslations("Dream");
   const tc = useTranslations("Common");
   const sorted = orderedGoals(goals);
@@ -279,6 +283,7 @@ export default function DreamView({
 
       {/* 目標一覧 */}
       <p style={{ fontSize: 12, marginBottom: 12 }}>{t("priorityHint")}</p>
+      {completionError && <p role="alert">{completionError}</p>}
       {orderError && <p role="alert">{t("orderError")}</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {sorted.map((g, index) => (
@@ -303,33 +308,20 @@ export default function DreamView({
               <input
                 type="checkbox"
                 aria-label={g.title}
-                disabled={ordering}
+                disabled={ordering || completing}
                 checked={g.done}
                 onChange={async () => {
                   
+                  if (completing) return;
+                  setCompleting(true); setCompletionError("");
+                  try {
                   const newDoneState = !g.done;
 
                   // 1. ゴール状態更新
-                  await updateGoalAction(uid, g.id, { done: newDoneState });
+                  if (!await complete(g.id, newDoneState, () => updateGoalAction(uid, g.id, { done: newDoneState }))) return;
                   if (newDoneState) announceFairy(goals.every(goal => !goal.done) ? "firstGoal" : "goalCompleted");
 
-                  // 2. 統計更新 (達成数カウント)
-                  const currentStats = profile.stats || {};
-                  const currentCount = currentStats.goalsAchievedCount || 0;
-
-                  // チェックON = 達成数+1, OFF = 達成数-1
-                  const newCount = newDoneState
-                    ? currentCount + 1
-                    : Math.max(0, currentCount - 1);
-
-                  const newStats = {
-                    ...currentStats,
-                    goalsAchievedCount: newCount
-                  };
-
-                  // プロフィール更新 (State + Firestore)
-                  setProfile(prev => ({ ...prev, stats: newStats }));
-                  await saveUserProfile(uid, { stats: newStats });
+                  const newCount = savedGoals.filter(goal => goal.id === g.id ? newDoneState : goal.done).length;
 
                   // 通知・演出
                   if (newDoneState) {
@@ -347,6 +339,8 @@ export default function DreamView({
                       await updateRecentAction(uid, g.title, "goal");
                     }
                   }
+                  } catch (error) { setCompletionError(error instanceof Error ? error.message : "保存できませんでした。再試行してください。"); }
+                  finally { setCompleting(false); }
                 }}
                 style={{ width: 18, height: 18, cursor: "pointer" }}
               />

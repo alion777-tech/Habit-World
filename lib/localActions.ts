@@ -4,6 +4,19 @@ import { LS_KEYS, notifyLocalStorageChange } from "./dataPersistence";
  * 汎用的なローカルデータ操作クラス
  */
 export class LocalStorageRepository {
+  // Notify subscribers only after both completion state and its wallet are saved.
+  static saveCompletion<T>(key: string, list: T[], profile: unknown) {
+    const previous = localStorage.getItem(key);
+    const nextList = JSON.stringify(list), nextProfile = JSON.stringify(profile);
+    localStorage.setItem(key, nextList);
+    try { localStorage.setItem(LS_KEYS.PROFILE, nextProfile); }
+    catch (error) {
+      if (previous === null) localStorage.removeItem(key); else localStorage.setItem(key, previous);
+      throw error;
+    }
+    notifyLocalStorageChange();
+  }
+
   static getList<T>(key: string): T[] {
     const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : [];

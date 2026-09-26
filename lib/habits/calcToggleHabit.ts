@@ -42,7 +42,7 @@ type ToggleCalcResult =
       earnedHabitStreakBonus?: EarnedHabitStreakBonus;
     };
 
-const HABIT_STREAK_BONUS_POINTS: Record<number, number> = {
+export const HABIT_STREAK_BONUS_POINTS: Record<number, number> = {
   3: 5,
   7: 20,
   10: 30,
@@ -79,7 +79,8 @@ export const calcToggleHabit = (
   targetDate: string,
   todayStr: string,
   yesterdayStr: string,
-  earnedHabitStreakBonuses: number[] = []
+  earnedHabitStreakBonuses: number[] = [],
+  separateBonus = false
 ): ToggleCalcResult => {
   const currentPoint = h.point ?? 0;
   const history = Array.isArray(h.pointHistory) ? h.pointHistory : [];
@@ -91,7 +92,7 @@ export const calcToggleHabit = (
   const isDoneTarget = !!targetEntry;
 
   if (isDoneTarget) {
-    const minus = targetEntry?.point ?? 0;
+    const minus = separateBonus ? Math.min(1, targetEntry?.point ?? 0) : (targetEntry?.point ?? 0);
     const newHistory = history.filter((p) => p.date !== targetDate);
     let newDailyStreak = 0;
     let newLastCompletedDate: string | null = null;
@@ -137,7 +138,7 @@ export const calcToggleHabit = (
     ? 0
     : getBonusPoint(finalStreak);
   const earnedPoint = 1 + bonusPoint;
-  const newHistory = [...history, { date: targetDate, point: earnedPoint }];
+  const newHistory = [...history, { date: targetDate, point: separateBonus ? 1 : earnedPoint }];
   const newEarnedBonuses =
     bonusPoint > 0 ? [...earnedBonuses, finalStreak] : earnedBonuses;
   const earnedHabitStreakBonus =
@@ -154,7 +155,7 @@ export const calcToggleHabit = (
     fields: {
       dailyStreak: finalStreak,
       lastCompletedDate: finalLastCompletedDate,
-      point: currentPoint + earnedPoint,
+      point: currentPoint + (separateBonus ? 1 : earnedPoint),
       pointHistory: newHistory,
     },
     pointDelta: earnedPoint,

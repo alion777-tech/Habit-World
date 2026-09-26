@@ -1,4 +1,5 @@
 "use client";
+import { useOptimisticCompletion } from "@/hooks/useOptimisticCompletion";
 import { useState } from "react";
 import { useLocale } from "next-intl";
 import type { Habit, Todo } from "@/types/appTypes";
@@ -8,12 +9,13 @@ import { toggleTodo } from "@/lib/todoActions";
 import styles from "./TodoView.module.css";
 
 type Props = { uid: string | null; todos: Todo[]; habits: Habit[]; today: string; habitToday?: string; habitDisabled?: boolean; isDarkMode: boolean; onTodo: () => void; onHabit: () => void; onToggleHabit: (id: string) => Promise<void> };
-export default function HomeView({ uid, todos, habits, today, habitToday = today, habitDisabled = false, isDarkMode, onTodo, onHabit, onToggleHabit }: Props) {
+export default function HomeView({ uid, todos: savedTodos, habits, today, habitToday = today, habitDisabled = false, isDarkMode, onTodo, onHabit, onToggleHabit }: Props) {
+  const { items: todos, complete } = useOptimisticCompletion(savedTodos, uid);
   const ja = useLocale() === "ja";
   const l = (jp: string, en: string) => ja ? jp : en;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const run = async (action: () => Promise<void>) => { if (busy) return; setBusy(true); setError(""); try { await action(); } catch { setError(l("更新できませんでした。再試行してください。", "Update failed. Please retry.")); } finally { setBusy(false); } };
+  const run = async (action: () => Promise<unknown>) => { if (busy) return; setBusy(true); setError(""); try { await action(); } catch (error) { setError(error instanceof Error ? error.message : l("更新できませんでした。再試行してください。", "Update failed. Please retry.")); } finally { setBusy(false); } };
   const tasks = homeTodos(todos, today).sort((a,b) => (a.dueDate || a.startDate || "").localeCompare(b.dueDate || b.startDate || ""));
   const daily = habits.filter(h => isHabitVisibleOnDate(h, habitToday));
   const reminders = todos.filter(t => reminderActive(t, today));
@@ -31,7 +33,7 @@ export default function HomeView({ uid, todos, habits, today, habitToday = today
     {!daily.length && <p className={styles.hint}>{l("今日のHabitはありません。", "No Habits scheduled today.")}</p>}
     <button onClick={onHabit}>{l("Habitを開く", "Open Habits")}{daily.length > 5 && ` (${daily.length})`}</button>
     <h3 style={{ marginTop:24 }}>{l("今日・近日中の重要なToDo", "Today and important upcoming tasks")}</h3>
-    {tasks.slice(0,5).map(t => <div key={t.id} className={`${styles.card} ${styles.row}`}><label className={styles.check}><input type="checkbox" aria-label={t.text} disabled={busy} checked={t.done} onChange={() => void run(() => toggleTodo(uid,t.id,t.done))}/></label><div><span>{t.text}</span><p className={styles.hint}>{t.dueDate || t.startDate}{t.recurrence && " · ↻"}</p></div></div>)}
+    {tasks.slice(0,5).map(t => <div key={t.id} className={`${styles.card} ${styles.row}`}><label className={styles.check}><input type="checkbox" aria-label={t.text} disabled={busy} checked={t.done} onChange={() => void run(() => complete(t.id, !t.done, () => toggleTodo(uid,t.id,t.done)))}/></label><div><span>{t.text}</span><p className={styles.hint}>{t.dueDate || t.startDate}{t.recurrence && " · ↻"}</p></div></div>)}
     {!tasks.length && <p className={styles.hint}>{l("今日の予定はありません。", "No tasks for today.")}</p>}
     <button className={styles.primary} onClick={onTodo}>{l("ToDoを管理・追加", "Manage / add tasks")}{tasks.length > 5 && ` (${tasks.length})`}</button>
   </section>;

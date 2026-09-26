@@ -24,7 +24,7 @@ const compile = text => ts.transpileModule(text,{compilerOptions:{module:ts.Modu
     const wait=deferred(), paint=deferred();let calculations=0;let pending=null, busy=false, error='', canonical=[{id:'h',pointHistory:[]}];
     const fields={point:1,pointHistory:[{date:'2026-09-27',point:1}]};
     const context={exports:{},habitUnavailable:false,habitLock:{current:false},auth:{currentUser:{uid:'me'}},uid:'me',habits:canonical,activeHabitDate:'2026-09-27',habitDate:{today:'2026-09-27',yesterday:'2026-09-26'},profile:{stats:{}},totalPoint:0,level:1,
-      setHabitBusy:v=>busy=v,setHabitError:v=>error=v,setPendingHabit:v=>pending=v,setHabits:fn=>canonical=fn(canonical),afterPaint:()=>paint.promise,calcToggleHabit:()=>{calculations++;return ({kind:'check',fields,pointDelta:1});},updateHabitFields:()=>wait.promise,announceFairy(){},saveUserProfile:async()=>{},setProfile(){},alert(){}};
+      setHabitBusy:v=>busy=v,setHabitError:v=>error=v,setPendingHabit:v=>pending=v,setHabits:fn=>canonical=fn(canonical),afterPaint:()=>paint.promise,setHabitCompletion:()=>{calculations++;return wait.promise.then(()=>({kind:'check',fields,pointDelta:1}));},announceFairy(){},saveUserProfile:async()=>{},setProfile(){},alert(){}};
     vm.runInNewContext(compile(handler+'\nexports.toggle=handleToggleHabit;'),context);
     const operation=context.exports.toggle('h');
     assert.equal(pending.fields.pointHistory[0].date,'2026-09-27','completion appears before calculation');
@@ -44,7 +44,9 @@ const compile = text => ts.transpileModule(text,{compilerOptions:{module:ts.Modu
   const values=[];let cursor=0, wait=deferred(),calls=0;
   const react={useState(initial){const i=cursor++;if(!(i in values))values[i]=initial;return [values[i],v=>values[i]=typeof v==='function'?v(values[i]):v];},useRef(initial){const i=cursor++;return values[i]??(values[i]={current:initial});},useEffect(){}};
   const jsx=(type,props)=>({type,props});
-  const context={exports:{},require:name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name==='next-intl'?{useLocale:()=> 'ja'}:name.includes('todoActions')?{addTodo:()=>{calls++;return wait.promise;}}:name.includes('todoModel')?{DEFAULT_CATEGORIES:[]}: {},console};
+  const hookContext={exports:{},require:name=>name==='react'?react:{afterPaint:async()=>{}}};
+  vm.runInNewContext(compile(fs.readFileSync('hooks/useOptimisticCompletion.ts','utf8')),hookContext);
+  const context={exports:{},require:name=>name.includes('useOptimisticCompletion')?hookContext.exports:name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:name==='next-intl'?{useLocale:()=> 'ja'}:name.includes('todoActions')?{addTodo:()=>{calls++;return wait.promise;}}:name.includes('todoModel')?{DEFAULT_CATEGORIES:[]}: {},console};
   vm.runInNewContext(compile(fs.readFileSync('app/components/TodoView.tsx','utf8')),context);
   const render=()=>{cursor=0;return context.exports.default({uid:'me',todos:[],today:'2026-09-27',checkLimit:()=>true,incrementStats:()=>{throw Error('extra sequential save');}});};
   const all=node=>!node||typeof node!=='object'?[]:Array.isArray(node)?node.flatMap(all):[node,...all(node.props?.children)];

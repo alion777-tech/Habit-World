@@ -1,11 +1,11 @@
 import { readEconomy, syncEconomy, syncLocalEconomy } from "./economyActions";
 import { reconcileEconomy } from "./economyModel";
 // lib/goalActions.ts
-import { collection, addDoc, deleteDoc, doc, updateDoc, getDocs, runTransaction, writeBatch } from "firebase/firestore";
+import { collection, addDoc, deleteDoc, doc, updateDoc, getDocs, runTransaction, writeBatch, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { LocalStorageRepository } from "./localActions";
 import { LS_KEYS } from "./dataPersistence";
-import type { Goal } from "@/types/appTypes";
+import type { Goal, Habit } from "@/types/appTypes";
 import { publicGoalList } from "./goalModel";
 
 export type GoalDoc = {
@@ -21,7 +21,6 @@ export const addGoal = async (uid: string | null, title: string, deadline?: stri
   if (!title.trim()) return;
 
   if (uid) {
-    const { serverTimestamp } = await import("firebase/firestore");
     await addDoc(collection(db, "users", uid, "goals"), {
       title: title.trim(),
       deadline: deadline || null,
@@ -53,7 +52,6 @@ export const updateGoal = async (
   
   if (uid) {
     if (fields.done === true) {
-      const { serverTimestamp } = await import("firebase/firestore");
       data.achievedAt = serverTimestamp();
     } else if (fields.done === false) {
       data.achievedAt = null;
@@ -61,8 +59,9 @@ export const updateGoal = async (
     await runTransaction(db, async tx => {
       const state = await readEconomy(tx, uid);
       const next = state.goals.map(g => g.id === goalId ? { ...g, ...data } : g);
+      const economy = reconcileEconomy({ ...state.profile, economy: state.economy }, state.habits, next);
       tx.update(doc(db, "users", uid, "goals", goalId), data);
-      tx.set(state.ref, { economy: reconcileEconomy({ ...state.profile, economy: state.economy }, state.habits, next) }, { merge: true });
+      tx.set(state.ref, { economy, stats: { ...state.profile.stats, goalsAchievedCount: next.filter(g => g.done).length } }, { merge: true });
     });
   } else {
     if (fields.done === true) {
@@ -71,10 +70,12 @@ export const updateGoal = async (
       data.achievedAt = null;
     }
     syncLocalEconomy();
-    LocalStorageRepository.updateItem(LS_KEYS.GOALS, goalId, data);
-    syncLocalEconomy();
+    const profile = LocalStorageRepository.getProfile() || {};
+    const goals = LocalStorageRepository.getList<Goal>(LS_KEYS.GOALS).map(g => g.id === goalId ? { ...g, ...data } : g);
+    const economy = reconcileEconomy(profile, LocalStorageRepository.getList<Habit>(LS_KEYS.HABITS), goals);
+    LocalStorageRepository.saveCompletion(LS_KEYS.GOALS, goals, { ...profile, economy, stats: { ...profile.stats, goalsAchievedCount: goals.filter(g => g.done).length } });
   }
-  if (uid) await syncPublicGoals(uid);
+  if (uid) await syncPublicGoals(uid).catch(error => console.error("[PublicGoals] Completion saved; publication will retry on next load", error));
 };
 
 export const deleteGoal = async (uid: string | null, goalId: string) => {

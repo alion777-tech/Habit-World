@@ -31,6 +31,7 @@ export async function syncEconomy(uid: string | null) {
   return runTransaction(db, async tx => {
     const state = await readEconomy(tx, uid);
     if (JSON.stringify(state.profile.economy) !== JSON.stringify(state.economy)) tx.set(state.ref, { economy: state.economy }, { merge: true });
+    if ((state.profile.stats?.goalsAchievedCount ?? 0) !== state.goals.filter(g => g.done).length) tx.set(state.ref, { stats: { ...state.profile.stats, goalsAchievedCount: state.goals.filter(g => g.done).length } }, { merge: true });
     if (state.legacyCoinsPresent) tx.update(state.ref, { 'fairyRoom.coins': deleteField() });
     return state.economy;
   });

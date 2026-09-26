@@ -227,7 +227,7 @@ export const TITLE_DEFINITIONS: TitleDefinition[] = [
         category: "level",
         conditionDescription: "Lv3到達",
         bonusPoints: 30,
-        check: (s) => (Math.floor((s.totalPoints || 0) / 100) + 1) >= 3
+        check: (s) => Math.max(s.highestLevel || 1, Math.floor((s.totalPoints || 0) / 100) + 1) >= 3
     },
     {
         id: "lv_10",
@@ -235,7 +235,7 @@ export const TITLE_DEFINITIONS: TitleDefinition[] = [
         category: "level",
         conditionDescription: "Lv10到達",
         bonusPoints: 100,
-        check: (s) => (Math.floor((s.totalPoints || 0) / 100) + 1) >= 10
+        check: (s) => Math.max(s.highestLevel || 1, Math.floor((s.totalPoints || 0) / 100) + 1) >= 10
     },
     {
         id: "lv_20",
@@ -243,7 +243,7 @@ export const TITLE_DEFINITIONS: TitleDefinition[] = [
         category: "level",
         conditionDescription: "Lv20到達",
         bonusPoints: 200,
-        check: (s) => (Math.floor((s.totalPoints || 0) / 100) + 1) >= 20
+        check: (s) => Math.max(s.highestLevel || 1, Math.floor((s.totalPoints || 0) / 100) + 1) >= 20
     },
     {
         id: "lv_30",
@@ -251,7 +251,7 @@ export const TITLE_DEFINITIONS: TitleDefinition[] = [
         category: "level",
         conditionDescription: "Lv30到達",
         bonusPoints: 300,
-        check: (s) => (Math.floor((s.totalPoints || 0) / 100) + 1) >= 30
+        check: (s) => Math.max(s.highestLevel || 1, Math.floor((s.totalPoints || 0) / 100) + 1) >= 30
     },
     {
         id: "lv_50",
@@ -259,7 +259,7 @@ export const TITLE_DEFINITIONS: TitleDefinition[] = [
         category: "level",
         conditionDescription: "Lv50到達",
         bonusPoints: 500,
-        check: (s) => (Math.floor((s.totalPoints || 0) / 100) + 1) >= 50
+        check: (s) => Math.max(s.highestLevel || 1, Math.floor((s.totalPoints || 0) / 100) + 1) >= 50
     },
     {
         id: "lv_60",
@@ -267,7 +267,7 @@ export const TITLE_DEFINITIONS: TitleDefinition[] = [
         category: "level",
         conditionDescription: "Lv60到達",
         bonusPoints: 600,
-        check: (s) => (Math.floor((s.totalPoints || 0) / 100) + 1) >= 60
+        check: (s) => Math.max(s.highestLevel || 1, Math.floor((s.totalPoints || 0) / 100) + 1) >= 60
     },
     {
         id: "lv_100",
@@ -275,7 +275,7 @@ export const TITLE_DEFINITIONS: TitleDefinition[] = [
         category: "level",
         conditionDescription: "Lv100到達",
         bonusPoints: 1000,
-        check: (s) => (Math.floor((s.totalPoints || 0) / 100) + 1) >= 100
+        check: (s) => Math.max(s.highestLevel || 1, Math.floor((s.totalPoints || 0) / 100) + 1) >= 100
     },
 
     // ガチ努力系

@@ -47,9 +47,11 @@ export async function toggleTodo(uid: string | null, todoId: string, done: boole
       if (!snap.exists() || snap.data().done !== done) return;
       const todo = { ...snap.data(), id: todoId } as Todo;
       const { fields, reward, next } = completionChanges(todo, today, now);
+      if ((state.profile.todoPoints || 0) + reward < 0) throw Error("ポイント履歴を確認できません。変更を中止しました。");
+      const economy = reconcileEconomy({ ...state.profile, economy: state.economy, todoPoints: (state.profile.todoPoints || 0) + reward }, state.habits, state.goals);
       tx.update(ref, { ...fields, ...(next ? { nextTodoId: nextRef.id } : {}) });
       if (next) tx.set(nextRef, { ...next, createdAt: serverTimestamp() });
-      tx.set(state.ref, { economy: reconcileEconomy({ ...state.profile, economy: state.economy, todoPoints: (state.profile.todoPoints || 0) + reward }, state.habits, state.goals), ...(reward ? { todoPoints: increment(reward) } : {}) }, { merge: true });
+      tx.set(state.ref, { economy, ...(reward ? { todoPoints: increment(reward) } : {}) }, { merge: true });
     });
   } else {
     syncLocalEconomy();
@@ -57,10 +59,12 @@ export async function toggleTodo(uid: string | null, todoId: string, done: boole
     const todo = list.find(t => t.id === todoId);
     if (!todo || todo.done !== done) return;
     const { fields, reward, next } = completionChanges(todo, today, now);
+    const profile = Local.getProfile() || {};
+    if ((profile.todoPoints || 0) + reward < 0) throw Error("ポイント履歴を確認できません。変更を中止しました。");
+    const economy = reconcileEconomy({ ...profile, todoPoints: (profile.todoPoints || 0) + reward }, Local.getList(LS_KEYS.HABITS), Local.getList(LS_KEYS.GOALS));
     Object.assign(todo, fields);
     if (next) { todo.nextTodoId = "local_todo_" + crypto.randomUUID(); list.push({ ...next, id: todo.nextTodoId }); }
-    Local.saveList(LS_KEYS.TODOS, list);
-    if (reward) { const p = Local.getProfile() || {}; Local.setProfile({ ...p, todoPoints: (p.todoPoints || 0) + reward }); }
+    Local.saveCompletion(LS_KEYS.TODOS, list, { ...profile, economy, todoPoints: (profile.todoPoints || 0) + reward });
     syncLocalEconomy();
   }
 }

@@ -50,6 +50,7 @@ export type Todo = {
   recurrence?: TodoRecurrence | null;
   subtasks?: { id: string; text: string; done: boolean }[];
   rewarded?: boolean;
+  completionPoints?: number; // Actual reversible amount; absent on legacy ToDos.
   nextTodoId?: string | null;
 };
 

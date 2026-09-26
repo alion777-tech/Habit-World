@@ -25,8 +25,7 @@ import {
   addHabit,
   deleteHabit as deleteHabitAction,
 } from "@/lib/habitActions";
-import { updateHabitFields } from "@/lib/habits/updateHabitFields";
-import { calcToggleHabit } from "@/lib/habits/calcToggleHabit";
+import { updateHabitFields, setHabitCompletion } from "@/lib/habits/updateHabitFields";
 import { formatDateToJST } from "@/lib/habits/dateUtils";
 import type { DailyStat, Habit, Goal, Todo, UserProfile, PointHistoryItem } from "@/types/appTypes";
 import { isHabitVisibleOnDate } from "@/lib/habits/visibility";
@@ -133,7 +132,6 @@ export default function Home() {
   const [pendingHabit, setPendingHabit] = useState<{ uid: string | null; id: string; fields: Partial<Habit> } | null>(null);
   const displayHabits = pendingHabit?.uid === uid ? habits.map(h => h.id === pendingHabit.id ? { ...h, ...pendingHabit.fields } : h) : habits;
   const loginStatusRef = useRef<{ uid: string; lastLoginAt: UserProfile["lastLoginAt"] } | null>(null);
-  const [goalsLoadedFor, setGoalsLoadedFor] = useState<string | null>(null);
   const testAccess = useTestAccess();
   const canPreviewFairyRoom = !!uid && !isAnonymous && testAccess.uid === uid && !testAccess.loading && !!testAccess.label && testAccess.enabled;
   const habitDate = habitTestDate(todayStr, uid, testAccess);
@@ -255,7 +253,6 @@ export default function Home() {
       }));
       setGoals(formatted);
 
-      setGoalsLoadedFor(uid || "local");
     });
 
     return () => unsub();
@@ -263,13 +260,6 @@ export default function Home() {
 
 
 
-  useEffect(() => {
-    if (isLoading || goalsLoadedFor !== (uid || "local") || profile.uid !== (uid || "local")) return;
-    const achievedCount = goals.filter(g => g.done).length;
-    if (achievedCount === (profile.stats?.goalsAchievedCount || 0)) return;
-    const stats = { ...profile.stats, goalsAchievedCount: achievedCount };
-    void saveUserProfile(uid, { stats }).catch(error => console.error("[StatsCorrection]", error));
-  }, [uid, goalsLoadedFor, goals, profile.uid, profile.stats, isLoading]);
 
   useEffect(() => {
     if (uid) void syncPublicGoals(uid).catch(error => console.error("[PublicGoals] Sync failed", error));
@@ -480,14 +470,8 @@ export default function Home() {
         : [...history, { date, point: 0 }] } });
       await afterPaint();
       if (auth.currentUser?.uid !== (uid ?? undefined)) return;
-      const result = calcToggleHabit(
-        h,
-        date,
-        habitDate.today,
-        habitDate.yesterday,
-        profile.stats?.earnedHabitStreakBonuses ?? []
-      );
-      await updateHabitFields(uid, h.id, result.fields, habitDate.context);
+      const result = await setHabitCompletion(uid, h.id, date, !wasDone, habitDate.context);
+      if (!result) return;
       if (auth.currentUser?.uid !== (uid ?? undefined)) return;
 
       setHabits(list => list.map(item => item.id === h.id ? { ...item, ...result.fields } : item));
@@ -499,19 +483,6 @@ export default function Home() {
         announceFairy(first ? "firstHabit" : date === habitDate.today && days === 30 ? "streak30"
           : date === habitDate.today && days === 7 ? "streak7"
           : newLevel > level ? "levelUp" : "habitCompleted");
-      }
-
-      if (result.earnedHabitStreakBonus) {
-        const newStats = {
-          ...(profile.stats || {}),
-          earnedHabitStreakBonuses: result.earnedHabitStreakBonus.earnedBonuses,
-        };
-
-        await saveUserProfile(uid, { stats: newStats });
-        setProfile(prev => ({
-          ...prev,
-          stats: newStats,
-        }));
       }
 
       if (result.alertMessage) alert(result.alertMessage);
@@ -582,7 +553,7 @@ export default function Home() {
   }, [uid, profile.uid, isLoading, legacyPoint]);
   // const totalPoint = habits.reduce((sum, h) => sum + (h.point ?? 0), 0) + Number(profile.bonusPoints || 0);
 
-  const level = Math.floor(totalPoint / 100) + 1;
+  const level = Math.max(profile.economy?.highestLevel ?? 1, Math.floor(totalPoint / 100) + 1);
 
   // 達成判定を再実行しても、加算と履歴保存はトランザクションで一度だけ。
   useEffect(() => {
@@ -591,6 +562,7 @@ export default function Home() {
       ...profile.stats,
       firstLoginAt: profile.firstLoginAt,
       totalPoints: totalPoint,
+      highestLevel: profile.economy?.highestLevel ?? 1,
       habitsCreatedCount: Math.max(profile.stats?.habitsCreatedCount || 0, habits.length),
       goalsCreatedCount: Math.max(profile.stats?.goalsCreatedCount || 0, goals.length),
     };
@@ -601,7 +573,7 @@ export default function Home() {
       playCharing();
       alert(added.map(item => `🎉 特別ポイント獲得！\n「${item.name}」\n${item.description}\n＋${item.point} pt`).join("\n\n"));
     }).catch(error => console.error("[SpecialPoints] 保存失敗", error));
-  }, [uid, isLoading, profile.stats, profile.firstLoginAt, totalPoint, profile.economy?.lifetimePoints, habits.length, goals.length, earnedTitles]);
+  }, [uid, isLoading, profile.stats, profile.firstLoginAt, totalPoint, profile.economy?.lifetimePoints, profile.economy?.highestLevel, habits.length, goals.length, earnedTitles]);
 
   // 🔹 利用制限チェック用
   const checkLimit = (type: "goals" | "todos" | "habits") => {
@@ -1022,7 +994,7 @@ export default function Home() {
         {view === "fairyRoom" && (isLoading ? <p role="status">お部屋を準備しています…</p> : <>
           {canPreviewFairyRoom && profile.uid === uid && profile.fairy?.status === "ready" && <button type="button" onClick={() => setTryFairyRoom(value => !value)} style={{ padding: "10px 14px", marginBottom: 12, border: "1px solid #94a3b8", borderRadius: 10, cursor: "pointer" }}>{tryFairyRoom ? "自分の妖精の部屋に戻る" : "サンプルの妖精で試す"}</button>}
           {!(canPreviewFairyRoom && tryFairyRoom) && uid && !isAnonymous && profile.uid === uid && profile.fairy?.status === "ready"
-            ? <FairyChamber key={`room-${uid}`} uid={uid} fairy={profile.fairy} room={profile.fairyRoom ? { ...profile.fairyRoom, gold } : undefined} totalPoints={totalPoint} loginDays={profile.stats?.loginDays ?? 0} />
+            ? <FairyChamber key={`room-${uid}`} uid={uid} fairy={profile.fairy} room={profile.fairyRoom ? { ...profile.fairyRoom, gold } : undefined} totalPoints={totalPoint} attainedLevel={level} loginDays={profile.stats?.loginDays ?? 0} />
             : canPreviewFairyRoom ? <FairyChamberPreview key={`trial-${uid}`} embedded isDarkMode={isDarkMode} />
             : <section aria-label="妖精の部屋（未解放）" style={{ padding: 24, textAlign: "center" }}>
                 <div style={{ fontSize: 48 }} aria-hidden="true">🥚</div>

@@ -85,7 +85,7 @@ const { updateHabitFields } = load('lib/habits/updateHabitFields.ts', name => na
   const React = require('react'), { renderToStaticMarkup } = require('react-dom/server');
   const visibility = load('lib/habits/visibility.ts', () => dates);
   const todoDates = [];
-  const Home = load('app/components/HomeView.tsx', name => name === 'next-intl' ? { useLocale: () => 'ja' }
+  const Home = load('app/components/HomeView.tsx', name => name.includes('useOptimisticCompletion') ? load('hooks/useOptimisticCompletion.ts', dep => dep.includes('afterPaint') ? {afterPaint: async()=>{}} : require(dep)) : name === 'next-intl' ? { useLocale: () => 'ja' }
     : name.includes('todoModel') ? { homeTodos: (_t, day) => { todoDates.push(day); return []; }, isOverdue: () => false, reminderActive: () => false }
     : name.includes('visibility') ? visibility : name.includes('todoActions') || name.endsWith('.css') ? {} : require(name)).default;
   const habit = docs.get(ref);

@@ -35,8 +35,8 @@ export const isToday = (todo: Todo, today: string) => !todo.done && (todo.dueDat
 export const reminderActive = (todo: Todo, today: string) => !todo.done && !!todo.dueDate && todo.reminderDays != null && addDays(todo.dueDate, -todo.reminderDays) <= today;
 export const homeTodos = (todos: Todo[], today: string) => todos.filter(t => isToday(t, today) || (!t.done && t.priority === "high" && !!t.dueDate && t.dueDate > today && t.dueDate <= addDays(today, 7)));
 export function completionChanges(todo: Todo, today: string, now: string) {
-  const reward = !todo.done && !todo.rewarded ? 5 : 0;
-  const fields = { done: !todo.done, completedAt: todo.done ? null : now, rewarded: todo.rewarded || !todo.done };
+  const reward = todo.done ? -(todo.completionPoints ?? (todo.rewarded ? 5 : 0)) : 1;
+  const fields = { done: !todo.done, completedAt: todo.done ? null : now, rewarded: todo.rewarded || !todo.done, completionPoints: todo.done ? 0 : 1 };
   let next: Omit<Todo, "id"> | null = null;
   if (!todo.done && todo.recurrence && !todo.nextTodoId) {
     const anchor = todo.dueDate || todo.startDate || today;

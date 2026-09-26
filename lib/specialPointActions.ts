@@ -13,7 +13,7 @@ export async function awardSpecialPoints(uid: string, stats: Record<string, unkn
     const state = await readEconomy(transaction, uid);
     const profile = state.profile;
     const currentStats = {
-      ...stats, ...profile.stats, totalPoints: state.economy.lifetimePoints,
+      ...stats, ...profile.stats, totalPoints: state.economy.lifetimePoints, highestLevel: state.economy.highestLevel ?? 1,
       habitsCreatedCount: Math.max(Number(stats.habitsCreatedCount || 0), Number(profile.stats?.habitsCreatedCount || 0)),
       goalsCreatedCount: Math.max(Number(stats.goalsCreatedCount || 0), Number(profile.stats?.goalsCreatedCount || 0)),
     };

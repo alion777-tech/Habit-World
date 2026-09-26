@@ -90,6 +90,7 @@ const React = require('react');
 const {renderToStaticMarkup} = require('react-dom/server');
 const messages = JSON.parse(fs.readFileSync('messages/ja.json','utf8'));
 const DreamView=load('app/components/DreamView.tsx',name=>{
+ if(name.includes('useOptimisticCompletion')) return load('hooks/useOptimisticCompletion.ts', dep => dep.includes('afterPaint') ? {afterPaint: async()=>{}} : require(dep));
  if(name==='react')return React;
  if(name==='react/jsx-runtime')return require(name);
  if(name==='next-intl')return {useTranslations:section=>(key,values={})=>Object.entries(values).reduce((s,[k,v])=>s.replace(`{${k}}`,String(v)),messages[section][key]||key)};

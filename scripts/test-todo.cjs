@@ -15,9 +15,9 @@ assert.equal(m.nextOccurrence('2026-02-28',{unit:'month',interval:1,monthDay:31}
 assert.equal(m.nextOccurrence('2028-01-31',{unit:'month',interval:1,monthDay:'last'}),'2028-02-29');
 assert.equal(m.nextOccurrence('2026-09-01',{unit:'month',interval:3,monthDay:1}),'2026-12-01');
 const base = { id:'old', text:'Legacy', done:false };
-assert.equal(m.completionChanges(base,'2026-09-10','now').reward,5);
-assert.equal(m.completionChanges({...base,done:true,rewarded:true},'2026-09-10','now').reward,0);
-assert.equal(m.completionChanges({...base,rewarded:true},'2026-09-10','now').reward,0);
+assert.equal(m.completionChanges(base,'2026-09-10','now').reward,1);
+assert.equal(m.completionChanges({...base,done:true,rewarded:true},'2026-09-10','now').reward,-5);
+assert.equal(m.completionChanges({...base,rewarded:true},'2026-09-10','now').reward,1);
 const recurring={...base,startDate:'2026-08-30',dueDate:'2026-09-01',recurrence:{unit:'month',interval:1,monthDay:1},subtasks:[{id:'s',text:'review',done:true}]};
 const result=m.completionChanges(recurring,'2026-09-10','now');
 assert.equal(result.next.dueDate,'2026-10-01');
@@ -42,6 +42,7 @@ const repository = {
   addItem(key,item) { this.saveList(key,[...this.getList(key),item]); },
   updateItem(key,id,fields) { this.saveList(key,this.getList(key).map(t=>t.id===id?{...t,...fields}:t)); },
   deleteItem(key,id) { this.saveList(key,this.getList(key).filter(t=>t.id!==id)); },
+  saveCompletion(key,list,p) { this.saveList(key,list); profile=p; },
   getProfile: () => profile,
   setProfile: p => { profile=p; },
 };
@@ -82,20 +83,20 @@ vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/todoActions.ts','utf8
  await a.updateTodo(null,id,{text:'Milk',priority:'high'});
  assert.equal(repository.getList('todos')[0].memo,'Keep me');
  await a.toggleTodo(null,id,false); await a.toggleTodo(null,id,false);
- assert.equal(profile.todoPoints,5);
+ assert.equal(profile.todoPoints,1);
  assert.ok(repository.getList('todos')[0].completedAt);
  await a.toggleTodo(null,id,true); await a.toggleTodo(null,id,false);
- assert.equal(profile.todoPoints,5);
- await a.deleteTodo(null,id); assert.equal(profile.todoPoints,5);
+ assert.equal(profile.todoPoints,1);
+ await a.deleteTodo(null,id); assert.equal(profile.todoPoints,1);
  await a.saveTodoCategories(null,[{id:'shopping',name:'Groceries'}]);
  assert.equal(profile.todoCategories[0].name,'Groceries');
  docs.set('users/test/todos/old',recurring);
  await a.toggleTodo('test','old',false); await a.toggleTodo('test','old',false);
- assert.equal(docs.get('users/test').todoPoints,5);
+ assert.equal(docs.get('users/test').todoPoints,1);
  assert.ok(docs.get('users/test/todos/old').nextTodoId);
  assert.equal([...docs.keys()].filter(k=>k.includes('generated-')).length,1);
  await a.toggleTodo('test','old',true); await a.toggleTodo('test','old',false);
- assert.equal(docs.get('users/test').todoPoints,5);
+ assert.equal(docs.get('users/test').todoPoints,1);
  assert.equal([...docs.keys()].filter(k=>k.includes('generated-')).length,1);
  console.log('ToDo persistence: local edits/rewards/categories and transaction idempotency passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});

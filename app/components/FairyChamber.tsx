@@ -35,13 +35,14 @@ type Props = {
   fairy: NonNullable<UserProfile["fairy"]>;
   room?: FairyRoomState;
   totalPoints: number;
+  attainedLevel?: number;
   loginDays: number;
   onSync?: (level: number, areaId?: string) => Promise<FairyRoomState>;
   onName?: (name: string) => Promise<void>;
   onTrade?: (action:TradeAction)=>Promise<FairyRoomState>;
 };
 
-export default function FairyChamber({ uid, fairy, room, totalPoints, loginDays, onSync, onName, onTrade }: Props) {
+export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLevel = 1, loginDays, onSync, onName, onTrade }: Props) {
   const [atelier, setAtelier] = useState<'closet' | 'shops' | null>(null);
   const wardrobe=useWardrobe(uid);
   const [saved, setSaved] = useState(room);
@@ -55,7 +56,7 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, loginDays,
   const dialog = useRef<HTMLDialogElement>(null);
   const inFlight = useRef(false);
   const lastLine = useRef(-1);
-  const level = Math.floor(Math.max(0, totalPoints) / 100) + 1;
+  const level = Math.max(attainedLevel, room?.highestLevel ?? 1, Math.floor(Math.max(0, totalPoints) / 100) + 1);
   const latestRoom = room && (!saved || room.updatedAt >= saved.updatedAt) ? room : saved;
   const source = latestRoom ? { ...latestRoom, gold: room?.gold ?? latestRoom.gold } : undefined;
   const closetUnlocked = !!wardrobe?.closetPurchased || !!source?.purchases?.includes("closet");

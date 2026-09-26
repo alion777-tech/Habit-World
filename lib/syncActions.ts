@@ -41,7 +41,9 @@ export async function syncLocalDataToFirestore(uid: string) {
       ...(categories.length ? { todoCategories: categories } : {}),
       todoImportIds: [...imported, importId],
       economy: { ...state.economy, version: 1, lifetimePoints: state.economy.lifetimePoints + localEconomy.lifetimePoints,
-        gold: state.economy.gold + localEconomy.gold, credited },
+        gold: state.economy.gold + localEconomy.gold, credited,
+        highestLevel: Math.max(state.economy.highestLevel ?? 1, localEconomy.highestLevel ?? 1, Math.floor((state.economy.lifetimePoints + localEconomy.lifetimePoints) / 100) + 1),
+        normalCredited: { ...localEconomy.normalCredited, ...state.economy.normalCredited, todo: nextTodo } },
     }, { merge: true });
     for (const [name, list] of [['habits', habits], ['goals', goals], ['todos', todos]] as const) {
       for (const { id, ...data } of list) tx.set(doc(db, 'users', uid, name, id), { ...data, syncedFromLocal: true }, { merge: true });
