@@ -19,7 +19,7 @@ export default function HomeView({ uid, todos: savedTodos, habits, today, habitT
   const tasks = homeTodos(todos, today).sort((a,b) => (a.dueDate || a.startDate || "").localeCompare(b.dueDate || b.startDate || ""));
   const daily = habits.filter(h => isHabitVisibleOnDate(h, habitToday));
   const reminders = todos.filter(t => reminderActive(t, today));
-  const overdue = todos.filter(t => isOverdue(t, today));
+  const overdue = todos.filter(t => isOverdue(t, today)).sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || ""));
   return <section className={styles.root} data-dark={isDarkMode}>
     <h2>{l("今日やること", "Your day")}</h2><p>{today}</p>
     {error && <p role="alert" className={styles.error}>{error}</p>}
@@ -35,6 +35,11 @@ export default function HomeView({ uid, todos: savedTodos, habits, today, habitT
     <h3 style={{ marginTop:24 }}>{l("今日・近日中の重要なToDo", "Today and important upcoming tasks")}</h3>
     {tasks.slice(0,5).map(t => <div key={t.id} className={`${styles.card} ${styles.row}`}><label className={styles.check}><input type="checkbox" aria-label={t.text} disabled={busy} checked={t.done} onChange={() => void run(() => complete(t.id, !t.done, () => toggleTodo(uid,t.id,t.done)))}/></label><div><span>{t.text}</span><p className={styles.hint}>{t.dueDate || t.startDate}{t.recurrence && " · ↻"}</p></div></div>)}
     {!tasks.length && <p className={styles.hint}>{l("今日の予定はありません。", "No tasks for today.")}</p>}
-    <button className={styles.primary} onClick={onTodo}>{l("ToDoを管理・追加", "Manage / add tasks")}{tasks.length > 5 && ` (${tasks.length})`}</button>
+    <h3 style={{ marginTop: 24 }}>{l("期限切れのToDo", "Overdue tasks")} · {overdue.length}</h3>
+    {overdue.map(t => <div key={t.id} className={`${styles.card} ${styles.row}`} data-overdue>
+      <label className={styles.check}><input type="checkbox" aria-label={t.text} disabled={busy} checked={t.done} onChange={() => void run(() => complete(t.id, !t.done, () => toggleTodo(uid, t.id, t.done)))}/></label>
+      <div><span>{t.text}</span><p className={styles.hint}>{l("期限: ", "Due: ")}{t.dueDate}{t.recurrence && " · ↻"}</p></div>
+    </div>)}
+    {!overdue.length && <p className={styles.hint}>{l("期限切れのToDoはありません。", "No overdue tasks.")}</p>}
   </section>;
 }

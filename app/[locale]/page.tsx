@@ -704,11 +704,6 @@ export default function Home() {
         boxShadow: isDarkMode ? "0 8px 24px rgba(0,0,0,0.5)" : "0 8px 24px rgba(0,0,0,0.1)",
         transition: "background 0.3s"
       }}>
-        <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 128px 8px 16px", flexShrink: 0, borderBottom: "1px solid #94a3b844" }}>
-          <button type="button" onClick={toggleDarkMode} aria-pressed={isDarkMode} aria-label={locale === "ja" ? "ダークモード" : "Dark mode"} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #94a3b8", cursor: "pointer", fontSize: 13 }}>
-            {isDarkMode ? "☀️" : "🌙"} {locale === "ja" ? (isDarkMode ? "ライトモードに切替" : "ダークモードに切替") : (isDarkMode ? "Light mode" : "Dark mode")}
-          </button>
-        </div>
         <div ref={contentRef} className="app-content">
         {!openingVisible && !isLoading && view !== "fairyRoom" && profile.uid === uid && profile.fairy?.status === "ready" && <AutonomousFairy uid={uid} key={`fairy-${uid || "local"}`} context={{
           account: uid || "local", ready: !isLoading && habitsLoadedFor === (uid || "local"),
@@ -720,7 +715,12 @@ export default function Home() {
         <details className="app-menu"><summary><span>☰ {locale === "ja" ? "メニュー" : "Menu"}</span><time className="menu-today" dateTime={todayStr} suppressHydrationWarning>{locale === "ja" ? `${todayStr.slice(0, 4)}年${Number(todayStr.slice(5, 7))}月${Number(todayStr.slice(8, 10))}日` : todayStr}</time></summary>
         <div data-opening="login"><AuthBox isDarkMode={isDarkMode} /></div>
         <TestAdminControls locale={locale} access={testAccess} disabled={habitBusy || testDateBusy} onBusyChange={setTestDateBusy} />
-        <button onClick={() => window.dispatchEvent(new Event("habit-world-replay-opening"))} style={{ padding: "10px 14px", border: "1px solid #94a3b8", borderRadius: 8, cursor: "pointer", marginBottom: 12 }}>オープニングをもう一度見る</button>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <button onClick={() => window.dispatchEvent(new Event("habit-world-replay-opening"))} style={{ padding: "10px 14px", border: "1px solid #94a3b8", borderRadius: 8, cursor: "pointer" }}>オープニングをもう一度見る</button>
+          <button type="button" onClick={toggleDarkMode} aria-pressed={isDarkMode} aria-label={locale === "ja" ? "ダークモード" : "Dark mode"} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #94a3b8", cursor: "pointer", fontSize: 13 }}>
+            {isDarkMode ? "☀️" : "🌙"} {locale === "ja" ? (isDarkMode ? "ライトモードに切替" : "ダークモードに切替") : (isDarkMode ? "Light mode" : "Dark mode")}
+          </button>
+        </div>
 
 
 

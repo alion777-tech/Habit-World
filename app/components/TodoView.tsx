@@ -96,7 +96,7 @@ export default function TodoView({ uid, todos: savedTodos, categories = DEFAULT_
     return Number.isNaN(d.getTime()) ? l("記録なし", "Not recorded") : d.toLocaleString(ja ? "ja-JP" : "en-US");
   };
   return <section className={styles.root} data-dark={isDarkMode}>
-    <h2>ToDo</h2><p className={styles.hint}>{l("仕事・用事を整理。完了で1pt、完了を取り消すと獲得分を戻します。", "Organize tasks and errands. Earn 1pt on completion; undo returns the reward.")}</p>
+    <h2>ToDo</h2><p className={styles.hint}>{l("仕事・用事を整理。完了で1pt獲得します。", "Organize tasks and errands. Earn 1pt on completion; undo returns the reward.")}</p>
     {error && <p role="alert" className={styles.error}>{error}</p>}{notice && <p role="status">{notice}</p>}
     {addingText && <p role="status">{l("追加中: ", "Adding: ")}{addingText}</p>}
     <form className={styles.row} onSubmit={e => { e.preventDefault(); void run(create); }}>
