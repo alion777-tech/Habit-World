@@ -1,6 +1,6 @@
 // Gold is the only spendable currency; the migration receipt is not a balance.
 export type Economy = { version: 1; lifetimePoints: number; gold: number; credited: Record<string, number>; normalCredited?: Record<string, number>; highestLevel?: number; legacyCoinMigration?: { amount: number } };
-type HabitSource = { id: string; point?: number | null; pointHistory?: { date: string; point: number }[] };
+type HabitSource = { id: string; point?: number | null; pointHistory?: { date: string; point: number; normalPoint?: number }[] };
 type GoalSource = { id: string; done?: boolean };
 type ProfileSource = { economy?: Economy; bonusPoints?: number; todoPoints?: number; level?: number };
 const amount = (n: unknown) => typeof n === 'number' && Number.isSafeInteger(n) && n > 0 ? n : 0;
@@ -40,7 +40,7 @@ export function reconcileEconomy(profile: ProfileSource, habits: HabitSource[], 
   for (const h of habits) {
     const prefix = `habit:${h.id}:`;
     for (const key of Object.keys(previous?.normalCredited ?? {})) if (key.startsWith(prefix)) normal[key] = 0;
-    for (const entry of h.pointHistory ?? []) normal[prefix + entry.date] = Math.min(1, amount(entry.point));
+    for (const entry of h.pointHistory ?? []) normal[prefix + entry.date] = Math.min(amount(entry.normalPoint ?? 1), amount(entry.point));
   }
   for (const g of goals) normal[`goal:${g.id}`] = g.done ? 100 : 0;
   if (!previous?.normalCredited) {
@@ -48,7 +48,7 @@ export function reconcileEconomy(profile: ProfileSource, habits: HabitSource[], 
     const migrated = legacyReconcileEconomy(profile, habits, goals);
     const credited = { ...migrated.credited };
     for (const [key, value] of Object.entries(credited)) {
-      if (/^habit:.*:\d{4}-\d{2}-\d{2}$/.test(key)) credited[key.replace('habit:', 'habit-special:')] = Math.max(0, value - 1);
+      if (/^habit:.*:\d{4}-\d{2}-\d{2}$/.test(key)) credited[key.replace('habit:', 'habit-special:')] = Math.max(0, value - (normal[key] ?? 1));
     }
     return { ...migrated, credited, normalCredited: normal,
       highestLevel: Math.max(previous?.highestLevel ?? 1, profile.level ?? 1, Math.floor(migrated.lifetimePoints / 100) + 1) };
@@ -62,7 +62,7 @@ export function reconcileEconomy(profile: ProfileSource, habits: HabitSource[], 
   const specials: Record<string, number> = { bonus: amount(profile.bonusPoints) };
   for (const h of habits) for (const entry of h.pointHistory ?? []) {
     const key = `habit-special:${h.id}:${entry.date}`;
-    specials[key] = Math.max(specials[key] ?? 0, amount(entry.point) - 1);
+    specials[key] = Math.max(specials[key] ?? 0, amount(entry.point) - Math.min(amount(entry.normalPoint ?? 1), amount(entry.point)));
   }
   const credited = { ...previous.credited };
   for (const [key, value] of Object.entries(specials)) {

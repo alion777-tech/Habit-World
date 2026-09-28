@@ -184,6 +184,7 @@
         "limitReach": "目標は200個が上限です。"
     },
     "Dream": {
+    "goalStatsSaveError": "目標は追加済みですが、追加件数の保存に失敗しました。同じ目標を再追加する必要はありません。",
         "title": "🌈 私の夢",
         "dreamPlaceholder": "あなたの夢を入力してください",
         "save": "保存",

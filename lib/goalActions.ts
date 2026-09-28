@@ -38,7 +38,7 @@ export const addGoal = async (uid: string | null, title: string, deadline?: stri
     };
     LocalStorageRepository.addItem(LS_KEYS.GOALS, newGoal);
   }
-  if (uid) await syncPublicGoals(uid);
+  if (uid) await syncPublicGoals(uid).catch(error => console.error("[PublicGoals] Goal created; publication will retry on next load", error));
 };
 
 export const updateGoal = async (

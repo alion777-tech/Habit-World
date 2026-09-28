@@ -18,18 +18,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dream-Habit | 最強の習慣化・目標達成アプリ",
-  description: "Dream-Habitは、三日坊主を卒業し、理想の生活を習慣化するための目標達成支援ツールです。無料で簡単に日々の習慣を記録・管理できます。",
+  title: "Habit World | 最強の習慣化・目標達成アプリ",
+  description: "Habit Worldは、三日坊主を卒業し、理想の生活を習慣化するための目標達成支援ツールです。無料で簡単に日々の習慣を記録・管理できます。",
   verification: {
     google: "BAZtlQapgxHdCsRwYb8o2H_viq-xofcWBuISEZOlpxM", // ←これを追加！
   },
   manifest: "/manifest.json",
+  icons: { icon: "/habit-world-icon-192.png", apple: "/habit-world-icon-180.png" },
   themeColor: "#4f46e5",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Dream-Habit",
+    title: "Habit World",
   },
 };
 
@@ -88,13 +89,9 @@ export default async function RootLayout({
                   });
                 });
 
-                // Refresh when the new service worker takes over
-                let refreshing = false;
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                  if (refreshing) return;
-                  refreshing = true;
-                  window.location.reload();
-                });
+                // Do not reload on controllerchange: first installation and updates
+                // can finish while users are entering onboarding or form data.
+
               }
             ` : `
               // Old production workers can serve HTML referencing deleted chunks.

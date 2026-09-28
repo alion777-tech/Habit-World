@@ -14,7 +14,7 @@ export function habitCompletionPlan(profile: Partial<UserProfile>, economy: Econ
     const id = 'legacy-' + key;
     if (!history.some(entry => entry.id === id)) history.push({ id, date: key.slice(-10), name: '習慣の連続達成報酬（引継ぎ）', description: '旧履歴から引継ぎ済み・再加算なし', point });
   }
-  const normalHistory = (habit.pointHistory ?? []).map(entry => ({ ...entry, point: Math.min(1, entry.point) }));
+  const normalHistory = (habit.pointHistory ?? []).map(entry => ({ ...entry, point: Math.min(entry.normalPoint ?? 1, entry.point) }));
   const normalized = { ...habit, pointHistory: normalHistory, point: normalHistory.reduce((sum, entry) => sum + entry.point, 0) };
   const result = calcToggleHabit(normalized, date, today, yesterday, [...earned], true);
   const bonus = result.earnedHabitStreakBonus;

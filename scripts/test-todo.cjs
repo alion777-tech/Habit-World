@@ -131,3 +131,5 @@ vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/todoActions.ts','utf8
   assert.equal(syncDocs.get('publicUsers/import-user').todoPoints,undefined);
   console.log('ToDo import: interrupted retry, existing points/categories, private metadata passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
+assert.equal(m.homeTodos([{...base,dueDate:"2027-01-01"},{...base,startDate:"2027-01-01"},{...base,done:true,dueDate:"2027-01-01"},{...base,dueDate:"2027-01-07",priority:"high"}],"2026-12-31").length,3,"tomorrow includes all priorities by start or due date, skips completed, and crosses year boundary");

@@ -13,10 +13,10 @@ const todo=load('lib/todoActions.ts'),habit=load('lib/habits/updateHabitFields.t
  await goal.updateGoal(null,'g',{done:false});assert.equal(local.getProfile().economy.gold,1);assert.equal(local.getProfile().economy.highestLevel,2);
  local.saveList(keys.HABITS,[{id:'h',text:'Habit',point:0,pointHistory:[],dailyStreak:0,lastCompletedDate:null,type:'daily'}]);
  for(let day=1;day<=3;day++)await habit.setHabitCompletion(null,'h','2026-09-0'+day,true);
- assert.equal(local.getProfile().economy.gold,9);assert.equal(local.getProfile().bonusPoints,5);
- await habit.setHabitCompletion(null,'h','2026-09-03',false);assert.equal(local.getProfile().economy.gold,8);
- await habit.setHabitCompletion(null,'h','2026-09-03',true);assert.equal(local.getProfile().economy.gold,9);
- let p=local.getProfile();local.setProfile({...p,economy:model.changeGold(p.economy,-9)});
+ assert.equal(local.getProfile().economy.gold,36);assert.equal(local.getProfile().bonusPoints,5);
+ await habit.setHabitCompletion(null,'h','2026-09-03',false);assert.equal(local.getProfile().economy.gold,26);
+ await habit.setHabitCompletion(null,'h','2026-09-03',true);assert.equal(local.getProfile().economy.gold,36);
+ let p=local.getProfile();local.setProfile({...p,economy:model.changeGold(p.economy,-36)});
  const before=JSON.stringify([...data]);await assert.rejects(habit.setHabitCompletion(null,'h','2026-09-03',false),/ゴールド/);assert.equal(JSON.stringify([...data]),before);
  // A failure writing the wallet restores the list and emits no partial snapshot.
  local.saveList(keys.TODOS,[{id:'b',text:'Retry',done:false}]);economy.syncLocalEconomy();const snapshot=JSON.stringify([...data]),observed=notifications;

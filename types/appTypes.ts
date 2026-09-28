@@ -8,6 +8,7 @@ export type DailyStat = {
 };
 
 export type PointHistoryItem = {
+  normalPoint?: number; // Actual regular reward; absent on legacy 1pt entries.
   date: string;   // "YYYY-MM-DD"
   point: number;  // +◯pt
 };

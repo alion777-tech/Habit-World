@@ -33,7 +33,7 @@ export function nextOccurrence(date: string, rule: TodoRecurrence): string {
 export const isOverdue = (todo: Todo, today: string) => !todo.done && !!todo.dueDate && todo.dueDate < today;
 export const isToday = (todo: Todo, today: string) => !todo.done && (todo.dueDate === today || todo.startDate === today);
 export const reminderActive = (todo: Todo, today: string) => !todo.done && !!todo.dueDate && todo.reminderDays != null && addDays(todo.dueDate, -todo.reminderDays) <= today;
-export const homeTodos = (todos: Todo[], today: string) => todos.filter(t => isToday(t, today) || (!t.done && t.priority === "high" && !!t.dueDate && t.dueDate > today && t.dueDate <= addDays(today, 7)));
+export const homeTodos = (todos: Todo[], today: string) => todos.filter(t => isToday(t, today) || isToday(t, addDays(today, 1)) || (!t.done && t.priority === "high" && !!t.dueDate && t.dueDate > today && t.dueDate <= addDays(today, 7)));
 export function completionChanges(todo: Todo, today: string, now: string) {
   const reward = todo.done ? -(todo.completionPoints ?? (todo.rewarded ? 5 : 0)) : 1;
   const fields = { done: !todo.done, completedAt: todo.done ? null : now, rewarded: todo.rewarded || !todo.done, completionPoints: todo.done ? 0 : 1 };

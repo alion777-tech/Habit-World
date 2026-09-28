@@ -10,6 +10,7 @@ type Props = { uid: string | null; onActiveChange: (active: boolean) => void; re
 const completionKey = "habit-world-opening-v1";
 
 export default function OpeningTutorial({ uid, onActiveChange, ready, signedIn, onNavigate }: Props) {
+  const progressKey = `${completionKey}:progress:${uid || "local"}`;
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [active, setActive] = useState(false);
@@ -38,9 +39,19 @@ export default function OpeningTutorial({ uid, onActiveChange, ready, signedIn, 
   useEffect(() => {
     if (!ready || initialized.current) return;
     initialized.current = true;
-    try { setActive(localStorage.getItem(completionKey) !== "complete"); }
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(progressKey) || "null");
+      if (saved && Number.isInteger(saved.index) && saved.index >= 0 && saved.index < openingDialogue.length) {
+        setIndex(saved.index); setStarted(saved.started === true); setActive(true);
+      } else setActive(localStorage.getItem(completionKey) !== "complete");
+    }
     catch { setActive(true); }
-  }, [ready]);
+  }, [ready, progressKey]);
+
+  useEffect(() => {
+    if (!active || !initialized.current) return;
+    try { sessionStorage.setItem(progressKey, JSON.stringify({ index, started })); } catch { /* Storage may be unavailable. */ }
+  }, [active, index, started, progressKey]);
 
   useEffect(() => {
     if (!active) return;
@@ -119,6 +130,7 @@ export default function OpeningTutorial({ uid, onActiveChange, ready, signedIn, 
     setSaving(true); setSaveError("");
     try { await receiveFairyEgg(uid); }
     catch { setSaveError("卵を保存できませんでした。通信を確認して、もう一度お試しください。"); setSaving(false); return; }
+    try { sessionStorage.removeItem(progressKey); } catch { /* Storage may be unavailable. */ }
     try { localStorage.setItem(completionKey, "complete"); localStorage.setItem("habit-world-opening-egg", "received"); } catch { /* 保存不可でも終了可能 */ }
     // 同じAudio要素を保持し、メイン画面へBGMを途切れず引き継ぐ。
     void voice.current?.suspend();

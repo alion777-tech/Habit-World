@@ -1,67 +1,37 @@
 # 03 ポイントシステム
 
-[目次](00-index.md) / [習慣](02-habit-system.md) / [冒険AP](06-adventure-system.md)
+現在の完了・取消・削除の仕様は[完了チェックとポイント](17-completion-accounting.md)を参照。本文の設定は説明資料であり、自動的にコードへ反映する設定ファイルではない。
 
-## 合計と通貨の区別
+## 通常ポイント（2026-09-29）
 
-本体 `app/[locale]/page.tsx` の `totalPoint` は次の計算です。
+| 対象 | 新規完了 |
+| --- | ---: |
+| 習慣 | 10pt／10G |
+| ToDo | 1pt／1G |
+| 目標 | 100pt／100G |
+| 夢・バケットリスト・ToDoサブタスク | 通常ポイントの直接加算なし |
 
-```text
-習慣全件の point の合計
-+ 現在 done=true の目標件数 × 100
-+ profile.bonusPoints
-+ profile.todoPoints
-```
+累計はeconomy.lifetimePoints、買い物用残高はeconomy.gold。通常完了取消で実際の通常受領額を戻す。旧習慣1ptは1、新習慣10ptは10。ゴールド不足の取消は拒否する。削除では受領済み額を減らさず、買い物は累計を減らさない。最高到達レベルは下げない。
 
-`level = floor(totalPoint / 100) + 1`。部屋では総合ポイントを EXP と表示しますが、別の経験値残高を貯める処理はありません。部屋表示は負数を0に丸めてレベル計算します。`specialPointHistory` は表示・受領判定用で、その合計を再加算しません。
+## 習慣の特別報酬
 
-AP は `profile.fairyRoom.adventurePoints` で別管理。型にある `UserProfile.totalPoints` や旧Functionsの `users.points` は、この合計式が読む残高ではありません。合計は習慣削除・目標取消で減るため、厳密な「生涯に獲得した点の不変累計」ではありません。
+通常報酬と別管理。一度獲得したら取消でも残り、再完了や別習慣で二重受領しない。プロフィール全体のearnedHabitStreakBonusesとspecialPointHistoryで管理する。
 
-## 条件 → 獲得結果
-
-| 条件 | 結果 | 状態・保存・主要処理 |
-| --- | --- | --- |
-| 未達成の習慣日を1回チェック | 基本 +1pt | 実装済み。`calcToggleHabit` → 習慣 `point/pointHistory` |
-| 連続日数が節目と一致し、その節目をプロフィール全体で未受領 | 基本1 + 下表のボーナス | 実装済み。`HABIT_STREAK_BONUS_POINTS` |
-| 現在未達成の目標を達成中にする | 集計上 +100pt | 実装済み。`goalActions.updateGoal` → 本体 `goalBonusPoints`。独立残高への加算ではない |
-| ToDo が未完了かつ `rewarded` が偽 | +5pt | 実装済み。`completionChanges` → `toggleTodo` → `todoPoints` |
-| ToDoを取消・再完了 | 追加0pt、取消で減算もしない | `rewarded` が残る。削除時にも報酬を戻さない |
-| 繰返しToDoから生成された次回の別タスクを初回完了 | +5pt | 次回は `rewarded:false` で作られる |
-| `TITLE_DEFINITIONS.check` を満たしID未受領 | 定義ごとの特別ポイント | `calculateSpecialRewards` → `awardSpecialPoints`。基本は1IDにつき1回 |
-| 卵状態で、記録された連続ログイン日数が7以上 | +100pt、`egg→naming` | `advanceFairyLogin`。ID `fairy-login-7` が履歴にない場合のみ加算 |
-| 森の奥から帰還し、同期成功 | +20〜40 AP | 総合ポイントには加算しない |
-| 夢達成、習慣の単なる追加、100のことの完了 | 直接の通常点加算なし | 習慣追加には別途特別条件 `debut` がある |
-| 通常の1日ログインのみ | 直接の毎日固定pt加算なし | 日数条件や孵化報酬に達したときだけ別途加算 |
-
-特別ポイントの本体判定は `uid` がある場合のみ。未ログインローカルで同じ特別条件が即支給される実装ではありません。孵化ログイン処理はさらに匿名アカウントを拒否します。
-
-## 個別習慣の連続達成ボーナス（全数値）
-
-定義：`lib/habits/calcToggleHabit.ts` の `HABIT_STREAK_BONUS_POINTS`。判定は `finalStreak` がキーと**一致**するときです。到達日数以上なら未受領の過去節目を全て配る方式ではありません。
-
-| 連続日数 | 特別加算 | 今回の基本点を含めた獲得 |
+| 連続日数 | 特別報酬 | 新規通常10ptを含む合計 |
 | --- | ---: | ---: |
-| 3 | 5 | 6 |
-| 7 | 20 | 21 |
-| 10 | 30 | 31 |
-| 21 | 70 | 71 |
-| 30 | 100 | 101 |
-| 90 | 300 | 301 |
-| 210 | 700 | 701 |
-| 365 | 1500 | 1501 |
-| 1095 | 3000 | 3001 |
-| 2555 | 7000 | 7001 |
-| 3650 | 10000 | 10001 |
+| 3 | 5 | 15 |
+| 7 | 20 | 30 |
+| 10 | 30 | 40 |
+| 21 | 70 | 80 |
+| 30 | 100 | 110 |
+| 90 | 300 | 310 |
+| 210 | 700 | 710 |
+| 365 | 1500 | 1510 |
+| 1095 | 3000 | 3010 |
+| 2555 | 7000 | 7010 |
+| 3650 | 10000 | 10010 |
 
-受領済みは習慣ごとではなく `profile.stats.earnedHabitStreakBonuses: number[]` です。習慣Aで3日報酬を受領済みなら、習慣Bが3日に達しても基本1ptだけです。
-
-### 3日と4日の具体例
-
-- 新しいプロフィールで同じ習慣を1日目→2日目→3日目と達成すると、その習慣は1+1+6=8pt。これは特別ログイン報酬等を含まない数字です。
-- 4日目は基本1pt、同じ習慣の累計9pt。**4日専用の節目報酬は未実装**です。
-- 累計ログインが3日に達した場合は別の `login_3` により+30pt。
-- 「3日連続全達成」の `streak_3` は+50ptという定義がありますが、`maxStreak` の現在の更新接続が確認できず、一部実装です。通常操作で自動的に必ず+50pt入るとは記載できません。
-- 4日目に他の条件（目標達成、ポイント到達等）を満たせば別報酬は入り得ます。それを4日継続報酬とは呼びません。
+特別報酬が受領済みの場合は通常10ptだけ。新しい利用者が3日連続で完了した場合、通常30＋特別5＝35pt、4日目で45pt（他の特別報酬を除く）。過去の1pt履歴・残高は増額しない。ログイン・レベル等の別条件を満たした場合は別途特別報酬が加算される。
 
 ## 特別ポイントの判定と重複防止
 
@@ -75,17 +45,7 @@ AP は `profile.fairyRoom.adventurePoints` で別管理。型にある `UserProf
 
 ## 減算・消費・価格
 
-| 操作 | 現在の結果 |
-| --- | --- |
-| 習慣達成を取消 | 対象日の `pointHistory.point` を全額減算。節目受領IDは戻さない |
-| 習慣削除 | その習慣が集計から消える |
-| 目標取消・達成済み目標削除 | 集計上100pt減る |
-| ToDo取消・削除 | 既に貯めた `todoPoints` は減らさない |
-| アイテム・服・アバター購入 | 未実装。購入可能商品・価格・残高減算関数はない |
-| 冒険出発 | pt/APの消費なし。体力20消費 |
-| APの交換・利用 | 未実装 |
-
-価格がないことは「0ptの商品」であることを意味しません。商品価格はコード上では確認できません。
+取消は通常受領額のみ減算（特別報酬は保持）、削除では減算しない。購入はゴールドのみ消費する。商品価格と素材買取は[ゴールド経済](16-gold-economy.md)とショップ設定表を参照。
 
 ## 旧実装・試作の数字を混ぜない
 
@@ -99,10 +59,10 @@ AP は `profile.fairyRoom.adventurePoints` で別管理。型にある `UserProf
 
 | 変更内容 | 定義・主要関数 | 一緒に確認するもの |
 | --- | --- | --- |
-| 習慣1回の基本点 | `calcToggleHabit` の `historyWithBasePoint` と `earnedPoint = 1 + bonusPoint` | 昨日の追記、取消、履歴、部屋回復 |
+| 習慣1回の基本点 | `calcToggleHabit` の `basePoint`（本番10） | completionModel・economyModel・normalPoint履歴、取消、旧データ、部屋回復 |
 | 3日など節目の日数・点数 | `HABIT_STREAK_BONUS_POINTS` | 受領済み配列・過去履歴。値を変えても過去点は自動改訂されない |
 | 目標100pt | 本体 `goalBonusPoints` | `DreamView`・翻訳の報酬表示、取消・削除、称号判定。既存達成目標も新係数で再集計される |
-| ToDo5pt | `todoModel.completionChanges` | `todoActions.toggleTodo`、`rewarded`、繰返し、ToDoテスト |
+| ToDo1pt | `todoModel.completionChanges` | `todoActions.toggleTodo`、`rewarded`、繰返し、ToDoテスト |
 | 特別条件 | `TITLE_DEFINITIONS` | `specialPointModel/Actions`、`TitleView`、`HistoryView`、条件統計の更新元 |
 | 孵化100pt・7日 | `fairyProgressModel.advanceFairyLogin` | `FairyRoom` の固定「+100pt」、部屋ロック文、`openingDialogue`、履歴ID |
 | AP範囲 | `ADVENTURE_AREAS` | `departAdventure`、`advanceRoom`、部屋説明・記録・保存済み旅行 |

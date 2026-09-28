@@ -184,6 +184,7 @@
         "limitReach": "Max 200 goals reached."
     },
     "Dream": {
+    "goalStatsSaveError": "The goal was added, but its creation statistics could not be saved. Do not add the same goal again.",
         "title": "🌈 My Dream",
         "dreamPlaceholder": "Enter your dream",
         "save": "Save",

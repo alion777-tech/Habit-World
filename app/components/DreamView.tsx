@@ -2,7 +2,7 @@
 "use client";
 
 import { useOptimisticCompletion } from "@/hooks/useOptimisticCompletion";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { orderedGoals, moveGoal } from "@/lib/goalModel";
 import type { Goal, UserProfile } from "@/types/appTypes";
 import { saveUserProfile } from "@/lib/profileActions";
@@ -72,6 +72,9 @@ export default function DreamView({
   incrementStats,
 }: Props) {
   const { items: goals, complete } = useOptimisticCompletion(savedGoals, uid);
+  const addingGoal = useRef(false);
+  const [savingGoal, setSavingGoal] = useState(false);
+  const [addError, setAddError] = useState("");
   const [completionError, setCompletionError] = useState("");
   const [completing, setCompleting] = useState(false);
   const t = useTranslations("Dream");
@@ -223,6 +226,7 @@ export default function DreamView({
         <h3 style={{ fontSize: 16, marginBottom: 8, color: isDarkMode ? "#d1d5db" : "#000" }}>{t("goalSectionTitle")}</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <input
+            disabled={savingGoal}
             value={goalInput}
             onChange={(e) => setGoalInput(e.target.value)}
             placeholder={t("goalPlaceholder")}
@@ -239,6 +243,7 @@ export default function DreamView({
           <div style={{ display: "flex", gap: 8 }}>
             <input
               type="date"
+              disabled={savingGoal}
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
               style={{
@@ -253,15 +258,22 @@ export default function DreamView({
 
             />
             <button
+              disabled={savingGoal || !goalInput.trim()}
               onClick={async () => {
-                if (!goalInput.trim()) return;
-                if (!checkLimit("goals")) return;
-
-                await addGoalAction(uid, goalInput.trim(), deadline || undefined);
-                await incrementStats("goals");
-
-                setGoalInput("");
-                setDeadline("");
+                if (addingGoal.current || !goalInput.trim() || !checkLimit("goals")) return;
+                addingGoal.current = true; setSavingGoal(true); setAddError("");
+                const submitted = goalInput;
+                const submittedDeadline = deadline;
+                setGoalInput(""); setDeadline("");
+                let created = false;
+                try {
+                  await addGoalAction(uid, submitted.trim(), submittedDeadline || undefined);
+                  created = true;
+                  await incrementStats("goals");
+                } catch {
+                  if (!created) { setGoalInput(submitted); setDeadline(submittedDeadline); }
+                  setAddError(created ? t("goalStatsSaveError") : tc("saveError"));
+                } finally { addingGoal.current = false; setSavingGoal(false); }
               }}
               style={{
                 padding: `${UI.btnPadY}px ${UI.btnPadX + 8}px`, // 少し横広め
@@ -281,6 +293,7 @@ export default function DreamView({
         </div>
       </div>
 
+      {addError && <p role="alert">{addError}</p>}
       {/* 目標一覧 */}
       <p style={{ fontSize: 12, marginBottom: 12 }}>{t("priorityHint")}</p>
       {completionError && <p role="alert">{completionError}</p>}
