@@ -13,6 +13,9 @@ export default function HomeView({ uid, todos: savedTodos, habits, today, habitT
   const { items: todos, complete } = useOptimisticCompletion(savedTodos, uid);
   const ja = useLocale() === "ja";
   const l = (jp: string, en: string) => ja ? jp : en;
+  const [tasksExpanded, setTasksExpanded] = useState(false);
+  const [overdueExpanded, setOverdueExpanded] = useState(false);
+  const highMark = (t: Todo) => t.priority === "high" ? <span role="img" aria-label={l("重要度：高", "High importance")} style={{ marginLeft: "auto", flexShrink: 0, color: "#ef4444", fontSize: 18 }}>●</span> : null;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const run = async (action: () => Promise<unknown>) => { if (busy) return; setBusy(true); setError(""); try { await action(); } catch (error) { setError(error instanceof Error ? error.message : l("更新できませんでした。再試行してください。", "Update failed. Please retry.")); } finally { setBusy(false); } };
@@ -33,13 +36,17 @@ export default function HomeView({ uid, todos: savedTodos, habits, today, habitT
     {!daily.length && <p className={styles.hint}>{l("今日のHabitはありません。", "No Habits scheduled today.")}</p>}
     <button onClick={onHabit}>{l("Habitを開く", "Open Habits")}{daily.length > 5 && ` (${daily.length})`}</button>
     <h3 style={{ marginTop:24 }}>{l("今日・明日・近日中の重要なToDo", "Today, tomorrow and important upcoming tasks")}</h3>
-    {tasks.map(t => <div key={t.id} className={`${styles.card} ${styles.row} ${styles.todoCard}`}><label className={styles.check}><input type="checkbox" aria-label={t.text} disabled={busy} checked={t.done} onChange={() => void run(() => complete(t.id, !t.done, () => toggleTodo(uid,t.id,t.done)))}/></label><div><span>{t.text}</span><p className={styles.hint}>{t.startDate && `${l("開始: ", "Start: ")}${t.startDate} · `}{t.dueDate && `${l("期限: ", "Due: ")}${t.dueDate}`}{t.recurrence && " · ↻"}</p></div></div>)}
+    <p className={styles.hint}>{l("🔴 赤丸は重要度「高」のしるしです。", "🔴 A red dot indicates high importance.")}</p>
+    {tasks.slice(0, tasksExpanded ? undefined : 5).map(t => <div key={t.id} className={`${styles.card} ${styles.row} ${styles.todoCard}`}><label className={styles.check}><input type="checkbox" aria-label={t.text} disabled={busy} checked={t.done} onChange={() => void run(() => complete(t.id, !t.done, () => toggleTodo(uid,t.id,t.done)))}/></label><div><span>{t.text}</span><p className={styles.hint}>{t.startDate && `${l("開始: ", "Start: ")}${t.startDate} · `}{t.dueDate && `${l("期限: ", "Due: ")}${t.dueDate}`}{t.recurrence && " · ↻"}</p></div>{highMark(t)}</div>)}
+    {tasks.length > 5 && <button type="button" aria-expanded={tasksExpanded} onClick={() => setTasksExpanded(v => !v)}>{tasksExpanded ? l("閉じる（5件表示）", "Show only 5") : l(`残り${tasks.length - 5}件を表示 ▼`, `Show ${tasks.length - 5} more ▼`)}</button>}
     {!tasks.length && <p className={styles.hint}>{l("今日・明日・近日中の重要な予定はありません。", "No tasks for today, tomorrow or important upcoming dates.")}</p>}
     <h3 style={{ marginTop: 24 }}>{l("期限切れのToDo", "Overdue tasks")} · {overdue.length}</h3>
-    {overdue.map(t => <div key={t.id} className={`${styles.card} ${styles.row} ${styles.todoCard}`} data-overdue>
+    {overdue.slice(0, overdueExpanded ? undefined : 5).map(t => <div key={t.id} className={`${styles.card} ${styles.row} ${styles.todoCard}`} data-overdue>
       <label className={styles.check}><input type="checkbox" aria-label={t.text} disabled={busy} checked={t.done} onChange={() => void run(() => complete(t.id, !t.done, () => toggleTodo(uid, t.id, t.done)))}/></label>
       <div><span>{t.text}</span><p className={styles.hint}>{l("期限: ", "Due: ")}{t.dueDate}{t.recurrence && " · ↻"}</p></div>
+      {highMark(t)}
     </div>)}
+    {overdue.length > 5 && <button type="button" aria-expanded={overdueExpanded} onClick={() => setOverdueExpanded(v => !v)}>{overdueExpanded ? l("閉じる（5件表示）", "Show only 5") : l(`残り${overdue.length - 5}件を表示 ▼`, `Show ${overdue.length - 5} more ▼`)}</button>}
     {!overdue.length && <p className={styles.hint}>{l("期限切れのToDoはありません。", "No overdue tasks.")}</p>}
   </section>;
 }

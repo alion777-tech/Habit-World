@@ -120,19 +120,21 @@ export default function TodoView({ uid, todos: savedTodos, categories = DEFAULT_
     <details><summary>{l("絞り込み・並び順", "Filters and sorting")}</summary><div className={styles.grid}>
       <label>{l("カテゴリ", "Category")}<select value={category} onChange={e => setCategory(e.target.value)}><option value="">{l("すべて", "All")}</option><option value="none">{l("未分類", "Uncategorized")}</option>{categories.map(c => <option key={c.id} value={c.id}>{name(c)}</option>)}</select></label>
       <label>{l("状態", "Status")}<select value={tab === "completed" ? "done" : status} disabled={tab === "completed"} onChange={e => setStatus(e.target.value)}><option value="open">{l("未完了", "Open")}</option><option value="done">{l("完了", "Done")}</option><option value="all">{l("すべて", "All")}</option></select></label>
-      <label>{l("優先度", "Priority")}<select value={priority} onChange={e => setPriority(e.target.value)}><option value="">{l("すべて", "All")}</option>{["high", "medium", "low"].map(p => <option key={p} value={p}>{priorityName(p)}</option>)}</select></label>
+      <label>{l("重要度", "Importance")}<select value={priority} onChange={e => setPriority(e.target.value)}><option value="">{l("すべて", "All")}</option>{["high", "medium", "low"].map(p => <option key={p} value={p}>{priorityName(p)}</option>)}</select></label>
       <label>{l("期限", "Due date")}<select value={dateFilter} onChange={e => setDateFilter(e.target.value)}>{[["", l("すべて", "All")], ["today", l("今日", "Today")], ["tomorrow", l("明日", "Tomorrow")], ["week", l("今週", "This week")], ["nextWeek", l("来週", "Next week")], ["date", l("指定日", "Specific date")], ["none", l("期限なし", "No date")], ["overdue", l("期限切れ", "Overdue")]].map(([v, text]) => <option key={v} value={v}>{text}</option>)}</select>{dateFilter === "date" && <input type="date" aria-label={l("指定日", "Specific date")} value={specifiedDate} onChange={e => setSpecifiedDate(e.target.value)}/>}</label>
       <label>{l("並び順", "Sort")}<select value={sort} onChange={e => setSort(e.target.value)}><option value="created">{l("作成順（新しい順）", "Newest first")}</option><option value="due">{l("期限が近い順", "Due date")}</option></select></label>
       <button onClick={() => { setCategory(""); setPriority(""); setStatus("open"); setDateFilter(""); setSearch(""); }}>{l("絞り込みを解除", "Clear filters")}</button>
     </div></details>
     <p className={styles.hint}>{filtered.length} {l("件 · ピン留めを先頭に表示", "tasks · Pinned first")}{category && ` · ${categories.find(c => c.id === category) ? name(categories.find(c => c.id === category)!) : l("未分類", "Uncategorized")}`}</p>
+    <p className={styles.hint}>{l("🔴 赤丸は重要度「高」のしるしです。", "🔴 A red dot indicates high importance.")}</p>
     <ul className={styles.list}>{filtered.slice(0, limit).map(item => <li key={item.id} className={`${styles.card} ${styles.todoCard}`} data-overdue={isOverdue(item, today)}>
       <div className={styles.row}>
         <label className={styles.check}><input type="checkbox" aria-label={`${item.text}: ${l("完了切替", "toggle completion")}`} checked={item.done} disabled={busy} onChange={() => void run(async () => { if (!await complete(item.id, !item.done, () => toggleTodo(uid, item.id, item.done))) return; if (!item.done) setNotice(l("完了しました。1pt獲得。繰り返しは次回分を作成します。", "Completed. Earned 1pt; repeating tasks create the next occurrence.")); })}/></label>
         <button className={styles.task} onClick={() => { setDraft({ ...item }); setSubtask(""); }}><span style={{ textDecoration: item.done ? "line-through" : "none" }}>{item.pinned && "📌 "}{item.text}</span></button>
         <button aria-label={l("ピン留め切替", "Toggle pin")} aria-pressed={!!item.pinned} disabled={busy} onClick={() => void run(() => updateTodo(uid, item.id, { pinned: !item.pinned }))}>📌</button>
+        {item.priority === "high" && <span role="img" aria-label={l("重要度：高", "High importance")} style={{ color: "#ef4444", fontSize: 18, flexShrink: 0 }}>●</span>}
       </div>
-      <div className={styles.meta} data-shopping={categories.find(c => c.id === item.categoryId)?.shopping}><span data-high={item.priority === "high"}>{l("優先度", "Priority")}: {priorityName(item.priority)}</span>
+      <div className={styles.meta} data-shopping={categories.find(c => c.id === item.categoryId)?.shopping}><span data-high={item.priority === "high"}>{l("重要度", "Importance")}: {priorityName(item.priority)}</span>
         {item.dueDate && <span>{isOverdue(item, today) ? l("⚠ 期限切れ: ", "⚠ Overdue: ") : l("期限: ", "Due: ")}{item.dueDate}</span>}
         {item.startDate && <span>{l("開始: ", "Start: ")}{item.startDate}</span>}
         {item.recurrence && <span>{l("↻ 繰り返し", "↻ Repeats")}</span>}
@@ -159,7 +161,7 @@ export default function TodoView({ uid, todos: savedTodos, categories = DEFAULT_
         <label>{l("メモ", "Notes")}<textarea value={draft.memo || ""} onChange={e => patch({ memo: e.target.value })} rows={3}/></label>
         <div className={styles.grid}>
           <label>{l("カテゴリ", "Category")}<select value={draft.categoryId || ""} onChange={e => patch({ categoryId: e.target.value || null })}><option value="">{l("未分類", "Uncategorized")}</option>{categories.map(c => <option key={c.id} value={c.id}>{name(c)}</option>)}</select></label>
-          <label>{l("優先度", "Priority")}<select value={draft.priority || "medium"} onChange={e => patch({ priority: e.target.value as Todo["priority"] })}>{["high", "medium", "low"].map(p => <option key={p} value={p}>{priorityName(p)}</option>)}</select></label>
+          <label>{l("重要度", "Importance")}<select value={draft.priority || "medium"} onChange={e => patch({ priority: e.target.value as Todo["priority"] })}>{["high", "medium", "low"].map(p => <option key={p} value={p}>{priorityName(p)}</option>)}</select></label>
           <label>{l("開始日（いつやるか）", "Start date")}<input type="date" value={draft.startDate || ""} onChange={e => patch({ startDate: e.target.value || null })}/></label>
           <label>{l("期限（いつまでか）", "Due date")}<input type="date" value={draft.dueDate || ""} onChange={e => patch({ dueDate: e.target.value || null, ...(!e.target.value ? { reminderDays: null } : {}) })}/></label>
         </div>

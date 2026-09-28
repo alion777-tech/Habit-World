@@ -316,7 +316,10 @@ export default function FriendView({ uid, currentUserName, isDarkMode = false }:
 
         return (
             <details key={user.uid} style={{ position: "relative", padding: "8px 36px 8px 12px", background: isDarkMode ? "#1f2937" : "#fff", borderRadius: 10, marginBottom: 6, border: isDarkMode ? "1px solid #374151" : "1px solid #eee", color: isDarkMode ? "#f3f4f6" : "#1f2937" }}>
-                <summary style={{ cursor: "pointer", overflowWrap: "anywhere" }}>
+                <summary style={{ cursor: "pointer", overflowWrap: "anywhere", paddingRight: isMe ? 0 : 96, minHeight: isMutual ? 64 : 44 }}>
+                    {!isMe && <button type="button" disabled={actionLoading === user.uid} onClick={e => { e.preventDefault(); e.stopPropagation(); void (isFollowing ? handleUnfollow(user.uid) : handleFollow(user.uid)); }} style={{ position: "absolute", top: 8, right: 12, fontSize: 12, minHeight: 36, padding: "6px 12px", borderRadius: 8, cursor: "pointer", border: "1px solid #94a3b8", background: isFollowing ? "transparent" : "#4f46e5", color: isFollowing ? "inherit" : "#fff" }}>
+                        {isFollowing ? t("following") : t("follow")}
+                    </button>}
                     <strong style={{ fontSize: 14 }}>{user.name}</strong>
                     {user.showDream && <div style={{ fontSize: 12, color: isDarkMode ? "#a5b4fc" : "#4f46e5", marginTop: 2 }}>🌈 {user.dream || t("secretDream")}</div>}
                     {loginStatus && <div style={{ fontSize: 11, color: isDarkMode ? "#9ca3af" : "#64748b", marginTop: 2 }}>🕒 {loginStatus}</div>}
@@ -329,9 +332,7 @@ export default function FriendView({ uid, currentUserName, isDarkMode = false }:
                             {user.publicGoals.slice(0, 3).map(goal => <li key={goal.id} style={{ fontSize: 13, marginBottom: 4, overflowWrap: "anywhere" }}>{goal.title}</li>)}
                         </ol>
                     </div>}
-                    {!isMe && <button type="button" disabled={actionLoading === user.uid} onClick={() => isFollowing ? handleUnfollow(user.uid) : handleFollow(user.uid)} style={{ fontSize: 12, minHeight: 36, padding: "6px 12px", borderRadius: 8, cursor: "pointer", border: "1px solid #94a3b8", background: isFollowing ? "transparent" : "#4f46e5", color: isFollowing ? "inherit" : "#fff" }}>
-                        {isFollowing ? t("following") : t("follow")}
-                    </button>}
+
                 </div>
             </details>
         );
