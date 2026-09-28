@@ -1,6 +1,7 @@
 import { syncEconomy } from "./economyActions";
 // lib/habitActions.ts
 import {
+  writeBatch,
   collection,
   addDoc,
   deleteDoc,
@@ -74,3 +75,14 @@ export const deleteHabit = async (uid: string | null, id: string) => {
     console.log("[deleteHabit] success LocalStorage:", id);
   }
 };
+
+export async function reorderHabits(uid: string | null, habits: import("@/types/appTypes").Habit[]) {
+  if (uid) {
+    const batch = writeBatch(db);
+    habits.forEach((h, priorityOrder) => batch.update(doc(db, "users", uid, "habits", h.id), { priorityOrder }));
+    await batch.commit();
+  } else {
+    const ranks = new Map(habits.map((h, i) => [h.id, i]));
+    LocalStorageRepository.saveList(LS_KEYS.HABITS, LocalStorageRepository.getList<import("@/types/appTypes").Habit>(LS_KEYS.HABITS).map(h => ranks.has(h.id) ? { ...h, priorityOrder: ranks.get(h.id) } : h));
+  }
+}

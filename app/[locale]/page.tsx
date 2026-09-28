@@ -12,6 +12,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { orderedHabits } from "@/lib/cardOrder";
 import HabitView from "../components/HabitView";
 import { TestAdminControls } from "../components/TestAdminMenu";
 import { useTestAccess } from "@/hooks/useTestAccess";
@@ -425,6 +426,7 @@ export default function Home() {
         return {
           id: doc.id,
           text: data.text,
+          priorityOrder: typeof data.priorityOrder === "number" ? data.priorityOrder : undefined,
           createdAt,
           type: data.type ?? "daily",
           daysOfWeek: data.daysOfWeek ?? undefined,
@@ -663,7 +665,7 @@ export default function Home() {
     return () => { cancelled = true; };
   }, [uid, isAnonymous, isLoading, todayStr, profile.fairy?.status, fairyRetry]);
 
-  const visibleHabits = displayHabits
+  const visibleHabits = orderedHabits(displayHabits, activeHabitDate)
     .filter(h => {
       if (h.type === "daily") return true;
       if (h.type === "weekly" && h.daysOfWeek?.includes(activeHabitDow)) return true;
@@ -1010,7 +1012,7 @@ export default function Home() {
         </>)}
         {(view === "habit" || view === "home") && habitDate.context && <p role="status">習慣テスト日付：{habitDate.today}（ToDo・妖精・冒険・ログインは実日付のまま）</p>}
         {(view === "habit" || view === "home") && habitError && <p role="alert">{habitError}</p>}
-        {view === "home" && <HomeView key={`home-${uid || "local"}`} uid={uid} todos={todos} habits={displayHabits} today={todayStr} habitToday={habitDate.today} habitDisabled={habitUnavailable} isDarkMode={isDarkMode} onTodo={() => setView("todo")} onHabit={() => setView("habit")} onToggleHabit={id => handleToggleHabit(id, habitDate.today)} />}
+        {view === "home" && <HomeView key={`home-${uid || "local"}`} uid={uid} todos={todos} goals={goals} habits={displayHabits} today={todayStr} habitToday={habitDate.today} habitDisabled={habitUnavailable} isDarkMode={isDarkMode} onTodo={() => setView("todo")} onHabit={() => setView("habit")} onToggleHabit={id => handleToggleHabit(id, habitDate.today)} />}
 
         {view === "habit" && (
           <HabitView
@@ -1026,6 +1028,7 @@ export default function Home() {
             setDaysOfWeek={setDaysOfWeek}
             uid={uid}
             visibleHabits={visibleHabits}
+            allHabits={displayHabits}
             editingId={editingId}
             setEditingId={setEditingId}
             editingText={editingText}

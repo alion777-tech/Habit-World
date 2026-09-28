@@ -91,6 +91,7 @@ const {renderToStaticMarkup} = require('react-dom/server');
 const messages = JSON.parse(fs.readFileSync('messages/ja.json','utf8'));
 const DreamView=load('app/components/DreamView.tsx',name=>{
  if(name.includes('useOptimisticCompletion')) return load('hooks/useOptimisticCompletion.ts', dep => dep.includes('afterPaint') ? {afterPaint: async()=>{}} : require(dep));
+ if(name==='./DragOrderHandle')return {default:load('app/components/DragOrderHandle.tsx', dep => dep==='next-intl'?{useLocale:()=> 'ja'}:require(dep)).default};
  if(name==='react')return React;
  if(name==='react/jsx-runtime')return require(name);
  if(name==='next-intl')return {useTranslations:section=>(key,values={})=>Object.entries(values).reduce((s,[k,v])=>s.replace(`{${k}}`,String(v)),messages[section][key]||key)};
@@ -107,8 +108,9 @@ const html=renderToStaticMarkup(React.createElement(DreamView.default,{
  setProfile:noop,setDreamInput:noop,setIsEditingDream:noop,setGoalInput:noop,setDeadline:noop,setEditingGoalId:noop,setEditingGoalText:noop,
  tabButtonStyle:{},checkLimit:()=>true,incrementStats:async()=>{},
 }));
-assert.equal((html.match(/<select/g)||[]).length,4);
+assert.equal((html.match(/<select/g)||[]).length,0);
+assert.equal((html.match(/ドラッグで並べ替え（上下キーでも移動）/g)||[]).length,4);
 assert.equal(html.includes('aria-label="4番"'),true);
 assert.equal(html.includes('aria-label="5番"'),false);
 assert.ok(html.lastIndexOf('>B</div>') > html.lastIndexOf('>A</div>'));
-console.log('PASS goal UI: numbered active goals, rank selectors and completed goals at the bottom');
+console.log('PASS goal UI: numbered active goals, drag handles and completed goals at the bottom');

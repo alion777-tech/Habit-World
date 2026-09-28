@@ -1,7 +1,10 @@
 //app/components/HabitView.tsx
 "use client";
 
-import type React from "react";
+import React, { useRef, useState } from "react";
+import DragOrderHandle from "./DragOrderHandle";
+import { moveVisibleHabit } from "@/lib/cardOrder";
+import { reorderHabits } from "@/lib/habitActions";
 import type { Habit } from "@/types/appTypes";
 
 type Props = {
@@ -36,6 +39,7 @@ type Props = {
   // =========================
   uid: string | null;
   visibleHabits: Habit[];
+  allHabits: Habit[];
 
   // =========================
   // 一覧の編集（ダブルクリック編集）
@@ -70,6 +74,7 @@ export default function HabitView({
   setDaysOfWeek,
   uid,
   visibleHabits,
+  allHabits,
 
   editingId,
   setEditingId,
@@ -89,6 +94,17 @@ export default function HabitView({
   habitDisplayDate = "today",
   setHabitDisplayDate,
 }: Props) {
+  const orderLock = useRef(false);
+  const [ordering, setOrdering] = useState(false);
+  const [orderError, setOrderError] = useState(false);
+  const move = async (id: string, target: string, done: boolean) => {
+    if (orderLock.current) return;
+    orderLock.current = true; setOrdering(true); setOrderError(false);
+    const ids = visibleHabits.filter(h => h.pointHistory.some(p => p.date === todayStr) === done).map(h => h.id);
+    try { await reorderHabits(uid, moveVisibleHabit(allHabits, ids, id, target)); }
+    catch { setOrderError(true); }
+    finally { orderLock.current = false; setOrdering(false); }
+  };
   const t = useTranslations("Habit");
   const tc = useTranslations("Common");
 
@@ -231,6 +247,7 @@ export default function HabitView({
       {visibleHabits.length === 0 && (
         <p style={{ color: "#888", textAlign: "center", padding: 20 }}>{t("noHabits")}</p>
       )}
+      {orderError && <p role="alert">{tc("saveError")}</p>}
       <ul style={{ paddingLeft: 0 }}>
         {visibleHabits.map((h) => {
           const isDoneToday = (h.pointHistory ?? []).some((p) => p.date === todayStr);
@@ -246,6 +263,8 @@ export default function HabitView({
           return (
             <li
               key={h.id}
+              data-order-id={h.id}
+              data-order-group={isDoneToday ? "habits-done" : "habits-open"}
               style={{
                 listStyle: "none",
                 padding: "10px 12px",
@@ -264,7 +283,7 @@ export default function HabitView({
                 <input
                   type="checkbox"
                   checked={isDoneToday}
-                  disabled={completionDisabled}
+                  disabled={completionDisabled || ordering}
                   onChange={() => {
                     onToggleHabit(h.id);
                   }}
@@ -306,6 +325,7 @@ export default function HabitView({
               <span style={{ alignSelf: "flex-end", margin: "0 4px 4px 8px", maxWidth: "40%", fontSize: 11, lineHeight: 1.5, textAlign: "right", color: isDarkMode ? "#d1d5db" : "#64748b" }}>
                 {h.type !== "weekly" ? t("daily") : [...new Set(h.daysOfWeek ?? [])].sort((a, b) => a - b).map(day => t(`days.${day}`)).join("・")}
               </span>
+              <DragOrderHandle id={h.id} group={isDoneToday ? "habits-done" : "habits-open"} disabled={ordering || completionDisabled} onMove={target => void move(h.id, target, isDoneToday)} />
               <button
                 onClick={() => {
                   if (window.confirm(t("confirmDelete"))) {

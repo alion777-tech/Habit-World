@@ -87,7 +87,7 @@ const { updateHabitFields } = load('lib/habits/updateHabitFields.ts', name => na
   const todoDates = [];
   const Home = load('app/components/HomeView.tsx', name => name.includes('useOptimisticCompletion') ? load('hooks/useOptimisticCompletion.ts', dep => dep.includes('afterPaint') ? {afterPaint: async()=>{}} : require(dep)) : name === 'next-intl' ? { useLocale: () => 'ja' }
     : name.includes('todoModel') ? { homeTodos: (_t, day) => { todoDates.push(day); return []; }, isOverdue: () => false, reminderActive: () => false }
-    : name.includes('visibility') ? visibility : name.includes('todoActions') || name.endsWith('.css') ? {} : require(name)).default;
+    : name.includes('cardOrder') ? load('lib/cardOrder.ts', () => ({})) : name.includes('visibility') ? visibility : name.includes('todoActions') || name.endsWith('.css') ? {} : require(name)).default;
   const habit = docs.get(ref);
   const render = day => renderToStaticMarkup(React.createElement(Home, { uid: 'test01', habits: [habit], todos: [], today: realToday, habitToday: day, onTodo() {}, onHabit() {}, onToggleHabit() {}, isDarkMode: false }));
   assert.match(render(realToday), /checked=""/);

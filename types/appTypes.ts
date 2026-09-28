@@ -14,6 +14,7 @@ export type PointHistoryItem = {
 };
 
 export type Habit = {
+  priorityOrder?: number;
   id: string;
   text: string;
   createdAt: Date | null;

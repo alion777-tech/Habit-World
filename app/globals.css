@@ -37,3 +37,5 @@ body {
 .app-menu>summary::-webkit-details-marker {display:none}
 .menu-today {margin-left:auto;font-size:13px;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
 .app-menu[open]>summary {margin-bottom:12px}
+
+.card-drop-target { outline: 2px solid #818cf8; outline-offset: 2px; }

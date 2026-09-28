@@ -2,14 +2,15 @@
 import { useOptimisticCompletion } from "@/hooks/useOptimisticCompletion";
 import { useState } from "react";
 import { useLocale } from "next-intl";
-import type { Habit, Todo } from "@/types/appTypes";
+import type { Habit, Todo, Goal } from "@/types/appTypes";
+import { orderedHabits, upcomingGoals } from "@/lib/cardOrder";
 import { homeTodos, isOverdue, reminderActive } from "@/lib/todoModel";
 import { isHabitVisibleOnDate } from "@/lib/habits/visibility";
 import { toggleTodo } from "@/lib/todoActions";
 import styles from "./TodoView.module.css";
 
-type Props = { uid: string | null; todos: Todo[]; habits: Habit[]; today: string; habitToday?: string; habitDisabled?: boolean; isDarkMode: boolean; onTodo: () => void; onHabit: () => void; onToggleHabit: (id: string) => Promise<void> };
-export default function HomeView({ uid, todos: savedTodos, habits, today, habitToday = today, habitDisabled = false, isDarkMode, onTodo, onHabit, onToggleHabit }: Props) {
+type Props = { uid: string | null; todos: Todo[]; goals?: Goal[]; habits: Habit[]; today: string; habitToday?: string; habitDisabled?: boolean; isDarkMode: boolean; onTodo: () => void; onHabit: () => void; onToggleHabit: (id: string) => Promise<void> };
+export default function HomeView({ uid, todos: savedTodos, goals = [], habits, today, habitToday = today, habitDisabled = false, isDarkMode, onTodo, onHabit, onToggleHabit }: Props) {
   const { items: todos, complete } = useOptimisticCompletion(savedTodos, uid);
   const ja = useLocale() === "ja";
   const l = (jp: string, en: string) => ja ? jp : en;
@@ -20,10 +21,15 @@ export default function HomeView({ uid, todos: savedTodos, habits, today, habitT
   const [error, setError] = useState("");
   const run = async (action: () => Promise<unknown>) => { if (busy) return; setBusy(true); setError(""); try { await action(); } catch (error) { setError(error instanceof Error ? error.message : l("更新できませんでした。再試行してください。", "Update failed. Please retry.")); } finally { setBusy(false); } };
   const tasks = homeTodos(todos, today).sort((a,b) => (a.dueDate || a.startDate || "").localeCompare(b.dueDate || b.startDate || ""));
-  const daily = habits.filter(h => isHabitVisibleOnDate(h, habitToday));
+  const nearGoals = upcomingGoals(goals, today);
+  const daily = orderedHabits(habits, habitToday).filter(h => isHabitVisibleOnDate(h, habitToday));
   const reminders = todos.filter(t => reminderActive(t, today));
   const overdue = todos.filter(t => isOverdue(t, today)).sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || ""));
   return <section className={styles.root} data-dark={isDarkMode}>
+    {!!nearGoals.length && <section style={{ marginBottom: 24 }}>
+      <h2>{l("期限が近い目標（あと1か月以内）", "Goals due within one month")}</h2>
+      {nearGoals.map(g => <div key={g.id} className={styles.card}><strong style={{ fontSize: 20, overflowWrap: "anywhere" }}>{g.title}</strong><p className={styles.hint} style={{ margin: "2px 0" }}>{l("期限: ", "Due: ")}{g.deadline}</p></div>)}
+    </section>}
     <h2>{l("今日やること", "Your day")}</h2><p>{today}</p>
     {error && <p role="alert" className={styles.error}>{error}</p>}
     {!!overdue.length && <button className={styles.error} onClick={onTodo}>{l("⚠ 期限切れ", "⚠ Overdue")}: {overdue.length} {l("件 — ToDoで確認", "tasks — review in ToDo")}</button>}

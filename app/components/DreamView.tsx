@@ -3,6 +3,7 @@
 
 import { useOptimisticCompletion } from "@/hooks/useOptimisticCompletion";
 import React, { useRef, useState } from "react";
+import DragOrderHandle from "./DragOrderHandle";
 import { orderedGoals, moveGoal } from "@/lib/goalModel";
 import type { Goal, UserProfile } from "@/types/appTypes";
 import { saveUserProfile } from "@/lib/profileActions";
@@ -83,12 +84,14 @@ export default function DreamView({
   const active = sorted.filter(g => !g.done);
   const [ordering, setOrdering] = useState(false);
   const [orderError, setOrderError] = useState(false);
+  const orderLock = useRef(false);
   const move = async (id: string, index: number) => {
-    if (ordering) return;
+    if (orderLock.current) return;
+    orderLock.current = true;
     setOrdering(true); setOrderError(false);
     try { await reorderGoals(uid, moveGoal(goals, id, index)); }
     catch { setOrderError(true); }
-    finally { setOrdering(false); }
+    finally { orderLock.current = false; setOrdering(false); }
   };
 
   return (
@@ -302,6 +305,8 @@ export default function DreamView({
         {sorted.map((g, index) => (
             <div
               key={g.id}
+              data-order-id={g.id}
+              data-order-group={!g.done ? "goals" : undefined}
               style={{
                 padding: "6px 10px",
                 borderRadius: 10,
@@ -406,11 +411,7 @@ export default function DreamView({
                 )}
               </div>
 
-              {!g.done && (
-                  <select aria-label={t("changeRank", { title: g.title })} disabled={ordering} value={index} onChange={e => void move(g.id, Number(e.target.value))} style={{ minHeight: 44, maxWidth: "100%", borderRadius: 6, background: isDarkMode ? "#1f2937" : "#fff", color: "inherit", border: "1px solid #94a3b8" }}>
-                    {active.map((_, rank) => <option key={rank} value={rank}>{t("rankLabel", { rank: rank + 1 })}</option>)}
-                  </select>
-              )}
+              {!g.done && <DragOrderHandle id={g.id} group="goals" disabled={ordering || completing} onMove={target => void move(g.id, active.findIndex(item => item.id === target))} />}
               <button
                 onClick={async () => {
                   if (!window.confirm(tc("confirmDelete"))) return;
