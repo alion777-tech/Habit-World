@@ -40,7 +40,12 @@ export default function AutonomousFairy({ context, uid }: { context?: FairyConte
     let frame = 0;
     let direction = -1;
     let peekSide = 1;
-    const floor = () => Math.max(0, bounds.height - element.offsetHeight - 8);
+    const floor = () => {
+      const navigation = document.querySelector<HTMLElement>(".primary-nav")?.getBoundingClientRect();
+      const bottom = navigation && navigation.height > 0
+        ? Math.min(bounds.height, navigation.top) : bounds.height;
+      return Math.max(0, bottom - element.offsetHeight - 8);
+    };
     const destination = (): Point => ({
       x: random(8, Math.max(8, bounds.width - bounds.size - 8)),
       y: random(24, Math.max(24, bounds.height - element.offsetHeight - 24)),
@@ -71,6 +76,14 @@ export default function AutonomousFairy({ context, uid }: { context?: FairyConte
     };
     const resize = () => {
       bounds = { width: window.innerWidth, height: window.innerHeight, size: element.offsetWidth };
+      if (action === "walk") {
+        const clampX = (x: number) => Math.max(8, Math.min(x, bounds.width - bounds.size - 8));
+        from = { x: clampX(from.x), y: floor() };
+        to = { x: direction > 0 ? Math.max(8, bounds.width - bounds.size - 8) : 8, y: floor() };
+        position = { x: clampX(position.x), y: floor() };
+        paint();
+        return;
+      }
       position = media.matches ? edge() : { x: bounds.width + bounds.size, y: destination().y };
       from = { ...position };
       to = edge();
@@ -116,6 +129,13 @@ export default function AutonomousFairy({ context, uid }: { context?: FairyConte
     const tick = (now: number) => {
       const delta = last ? Math.min(now - last, 64) : 0;
       last = now;
+      // Follow the actual bar edge, including safe-area padding and layout changes.
+      // Only the walking route and its landing endpoint use this boundary.
+      if (action === "land") to.y = floor();
+      if (action === "walk") {
+        from.y = to.y = position.y = floor();
+        paint();
+      }
       if (!pausedRef.current && !media.matches) {
         if (previewRef.current) {
           const requested = previewRef.current;

@@ -15,7 +15,8 @@ function harness(reduced = false) {
   });
   const element = { offsetWidth: 64, offsetHeight: 96, style: {}, dataset: {}, firstElementChild: { style: {} } };
   const media = { matches: reduced, ...target('media:') };
-  const doc = { hidden: false, ...target('doc:') };
+  const navigation = { top: 536, height: 64 };
+  const doc = { hidden: false, querySelector: () => ({ getBoundingClientRect: () => navigation }), ...target('doc:') };
   const win = { innerWidth: 800, innerHeight: 600, matchMedia: () => media, ...target('win:') };
   let effect, cleanup, clock = 0, id = 0, choice = 0.2;
   const frames = new Map();
@@ -36,7 +37,7 @@ function harness(reduced = false) {
   vm.runInNewContext(code, context);
   const tree = context.exports.default();
   cleanup = effect();
-  return { element, media, doc, win, events, frames, cleanup,
+  return { element, media, doc, win, navigation, events, frames, cleanup,
     choose: (v) => { choice = v; },
     pause: tree.props.children[0].props.children[0].props.onClick,
     preview: (index) => tree.props.children[0].props.children[1][index].props.onClick(),
@@ -68,7 +69,23 @@ for (const choice of [0.2, 0.4, 0.55, 0.7, 0.95]) {
 for (const state of ['fly', 'hover', 'rest', 'leave', 'away', 'enter', 'land', 'walk', 'takeoff', 'peek']) assert.ok(seen.has(state), state);
 h.preview(1); h.advance(1900);
 assert.equal(h.element.dataset.action, 'walk');
-assert.match(h.element.style.transform, /, 49[0-6](?:\.\d+)?px, 0\)/, 'walk stays at floor');
+const walkingY = () => Number(h.element.style.transform.match(/, ([\d.]+)px, 0\)/)[1]);
+const assertAboveNavigation = () => {
+  const floor = h.navigation.top - h.element.offsetHeight - 8;
+  assert.ok(walkingY() <= floor && walkingY() >= floor - 4, 'whole sprite walks above navigation with bob clearance');
+};
+assertAboveNavigation();
+h.navigation.top = 512; h.navigation.height = 88;
+h.advance(16);
+assertAboveNavigation();
+h.win.innerWidth = 320; h.win.innerHeight = 480;
+h.navigation.top = 400; h.navigation.height = 80;
+h.events.get('win:resize')(); h.advance(16);
+assert.equal(h.element.dataset.action, 'walk', 'resize preserves walking');
+assertAboveNavigation();
+h.doc.querySelector = () => null;
+h.advance(16);
+assert.ok(walkingY() <= 376 && walkingY() >= 372, 'preview without navigation uses viewport floor');
 h.preview(2); h.advance(2600);
 assert.equal(h.element.dataset.action, 'away');
 h.doc.hidden = true; h.events.get('doc:visibilitychange')();
