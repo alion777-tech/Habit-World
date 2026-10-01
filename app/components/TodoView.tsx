@@ -4,7 +4,7 @@ import { useOptimisticCompletion } from "@/hooks/useOptimisticCompletion";
 import { useLocale } from "next-intl";
 import type { Todo, TodoCategory, TodoRecurrence } from "@/types/appTypes";
 import { addTodo, toggleTodo, deleteTodo, updateTodo, saveTodoCategories } from "@/lib/todoActions";
-import { addDays, weekEnd, isToday, isOverdue, reminderActive, DEFAULT_CATEGORIES } from "@/lib/todoModel";
+import { addDays, weekEnd, monthEnd, isToday, isOverdue, reminderActive, DEFAULT_CATEGORIES } from "@/lib/todoModel";
 import styles from "./TodoView.module.css";
 
 type Props = { uid: string | null; todos: Todo[]; categories?: TodoCategory[]; today: string; isDarkMode?: boolean;
@@ -34,6 +34,7 @@ export default function TodoView({ uid, todos: savedTodos, categories = DEFAULT_
   const [subtask, setSubtask] = useState("");
   const editorRef = useRef<HTMLElement>(null);
   const editorOpen = !!draft;
+  const repeatsEveryMonthEnd = draft?.recurrence?.unit === "month" && draft.recurrence.monthDay === "last" && draft.recurrence.interval === 1;
   useEffect(() => {
     if (!editorOpen) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -165,12 +166,12 @@ export default function TodoView({ uid, todos: savedTodos, categories = DEFAULT_
           <label>{l("開始日（いつやるか）", "Start date")}<input type="date" value={draft.startDate || ""} onChange={e => patch({ startDate: e.target.value || null })}/></label>
           <label>{l("期限（いつまでか）", "Due date")}<input type="date" value={draft.dueDate || ""} onChange={e => patch({ dueDate: e.target.value || null, ...(!e.target.value ? { reminderDays: null } : {}) })}/></label>
         </div>
-        <div className={styles.tabs}>{[[l("今日", "Today"), today], [l("明日", "Tomorrow"), addDays(today, 1)], [l("今週末", "This Sunday"), weekEnd(today)], [l("来週末", "Next Sunday"), addDays(weekEnd(today), 7)], [l("期限なし", "No due date"), ""]].map(([label, date]) => <button type="button" key={label} onClick={() => patch({ dueDate: date || null, ...(!date ? { reminderDays: null } : {}) })}>{label}</button>)}</div>
+        <div className={styles.tabs}>{[[l("今日", "Today"), today], [l("明日", "Tomorrow"), addDays(today, 1)], [l("今週末", "This Sunday"), weekEnd(today)], [l("月末", "End of month"), monthEnd(today)], [l("期限なし", "No due date"), ""]].map(([label, date]) => <button type="button" key={label} onClick={() => patch({ dueDate: date || null, ...(!date ? { reminderDays: null } : {}) })}>{label}</button>)}</div>
         <label>{l("リマインダー", "Reminder")}<select disabled={!draft.dueDate} value={draft.reminderDays == null ? "none" : [0,1,3,7].includes(draft.reminderDays) ? draft.reminderDays : "custom"} onChange={e => patch({ reminderDays: e.target.value === "none" ? null : e.target.value === "custom" ? 2 : Number(e.target.value) })}><option value="none">{l("なし", "None")}</option>{[0,1,3,7].map(n => <option key={n} value={n}>{n === 0 ? l("当日", "On due date") : `${n}${l("日前", " days before")}`}</option>)}<option value="custom">{l("任意の日数前", "Custom days before")}</option></select></label>
         {draft.reminderDays != null && <label>{l("何日前に知らせるか", "Days before due date")}<input type="number" min={0} max={3650} required value={draft.reminderDays} onChange={e => patch({ reminderDays: Number(e.target.value) })}/></label>}
         <p className={styles.hint}>{l("通知はアプリ内に表示します。閉じている間のプッシュ通知はありません。日付は日本時間です。", "Reminders appear in the app, with no push while closed. Dates use Japan time.")}</p>
-        <label>{l("繰り返し（Habitとは別）", "Repeat (separate from Habits)")}<select value={draft.recurrence?.unit || "none"} onChange={e => patch({ recurrence: e.target.value === "none" ? null : { unit: e.target.value as TodoRecurrence["unit"], interval: 1, weekday: 1, monthDay: 1 } })}><option value="none">{l("なし", "None")}</option><option value="day">{l("日ごと", "Daily")}</option><option value="week">{l("週ごと", "Weekly")}</option><option value="month">{l("月ごと", "Monthly")}</option></select></label>
-        {draft.recurrence && <div className={styles.grid}>
+        <label>{l("繰り返し（Habitとは別）", "Repeat (separate from Habits)")}<select value={repeatsEveryMonthEnd ? "monthEnd" : draft.recurrence?.unit || "none"} onChange={e => patch({ recurrence: e.target.value === "none" ? null : e.target.value === "monthEnd" ? { unit: "month", interval: 1, monthDay: "last" } : { unit: e.target.value as TodoRecurrence["unit"], interval: 1, weekday: 1, monthDay: 1 } })}><option value="none">{l("なし", "None")}</option><option value="day">{l("日ごと", "Daily")}</option><option value="week">{l("週ごと", "Weekly")}</option><option value="month">{l("月ごと", "Monthly")}</option><option value="monthEnd">{l("毎月末", "Every month end")}</option></select></label>
+        {draft.recurrence && !repeatsEveryMonthEnd && <div className={styles.grid}>
           <label>{l("間隔", "Interval")}<input type="number" required min={1} max={365} value={draft.recurrence.interval} onChange={e => patch({ recurrence: { ...draft.recurrence!, interval: Number(e.target.value) } })}/></label>
           {draft.recurrence.unit === "week" && <label>{l("曜日", "Weekday")}<select value={draft.recurrence.weekday ?? 1} onChange={e => patch({ recurrence: { ...draft.recurrence!, weekday: Number(e.target.value) } })}>{(ja ? ["日", "月", "火", "水", "木", "金", "土"] : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]).map((v,i) => <option key={i} value={i}>{v}</option>)}</select></label>}
           {draft.recurrence.unit === "month" && <label>{l("日", "Day")}<select value={draft.recurrence.monthDay || 1} onChange={e => patch({ recurrence: { ...draft.recurrence!, monthDay: e.target.value === "last" ? "last" : Number(e.target.value) } })}>{Array.from({ length: 31 }, (_,i) => <option key={i+1} value={i+1}>{i+1}</option>)}<option value="last">{l("月末", "Last day")}</option></select></label>}

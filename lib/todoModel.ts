@@ -10,6 +10,11 @@ export const addDays = (date: string, days: number) => {
   return d.toISOString().slice(0, 10);
 };
 export const weekEnd = (date: string) => addDays(date, (7 - new Date(date + "T00:00:00Z").getUTCDay()) % 7);
+export const monthEnd = (date: string) => {
+  const d = new Date(date + "T00:00:00Z");
+  d.setUTCMonth(d.getUTCMonth() + 1, 0);
+  return d.toISOString().slice(0, 10);
+};
 export function nextOccurrence(date: string, rule: TodoRecurrence): string {
   if (!Number.isInteger(rule.interval) || rule.interval < 1 || rule.interval > 365) throw new Error("Invalid recurrence interval");
   if (!['day', 'week', 'month'].includes(rule.unit)) throw new Error("Invalid recurrence unit");

@@ -8,6 +8,16 @@ vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/todoModel.ts','utf8')
 const m = context.exports;
 assert.equal(m.addDays('2026-12-31',1),'2027-01-01');
 assert.equal(m.weekEnd('2026-09-13'),'2026-09-13');
+for (const [date, expected] of [
+  ['2026-02-01', '2026-02-28'], ['2028-02-10', '2028-02-29'],
+  ['2026-04-01', '2026-04-30'], ['2026-10-02', '2026-10-31'],
+  ['2026-10-31', '2026-10-31'], ['2026-12-01', '2026-12-31'],
+]) assert.equal(m.monthEnd(date), expected);
+const everyMonthEnd = {unit:'month',interval:1,monthDay:'last'};
+for (const [date, expected] of [
+  ['2026-01-31', '2026-02-28'], ['2026-02-28', '2026-03-31'],
+  ['2028-02-29', '2028-03-31'], ['2026-12-31', '2027-01-31'],
+]) assert.equal(m.nextOccurrence(date, everyMonthEnd), expected);
 assert.equal(m.nextOccurrence('2026-09-14',{unit:'week',interval:1,weekday:1}),'2026-09-21');
 assert.equal(m.nextOccurrence('2026-09-18',{unit:'week',interval:2,weekday:5}),'2026-10-02');
 assert.equal(m.nextOccurrence('2026-01-31',{unit:'month',interval:1,monthDay:31}),'2026-02-28');
@@ -15,6 +25,9 @@ assert.equal(m.nextOccurrence('2026-02-28',{unit:'month',interval:1,monthDay:31}
 assert.equal(m.nextOccurrence('2028-01-31',{unit:'month',interval:1,monthDay:'last'}),'2028-02-29');
 assert.equal(m.nextOccurrence('2026-09-01',{unit:'month',interval:3,monthDay:1}),'2026-12-01');
 const base = { id:'old', text:'Legacy', done:false };
+const monthEndTask = {...base, dueDate:'2026-01-31', recurrence:everyMonthEnd};
+assert.equal(m.completionChanges(monthEndTask,'2026-01-31','now').next.dueDate,'2026-02-28');
+assert.equal(m.completionChanges(monthEndTask,'2026-03-01','now').next.dueDate,'2026-03-31');
 assert.equal(m.completionChanges(base,'2026-09-10','now').reward,1);
 assert.equal(m.completionChanges({...base,done:true,rewarded:true},'2026-09-10','now').reward,-5);
 assert.equal(m.completionChanges({...base,rewarded:true},'2026-09-10','now').reward,1);
@@ -30,7 +43,7 @@ assert.equal(m.reminderActive({...base,done:true,dueDate:'2026-09-30',reminderDa
 assert.equal(m.isOverdue({...base,dueDate:'2026-09-09'},'2026-09-10'),true);
 assert.equal(m.isOverdue({...base,dueDate:'2026-09-10'},'2026-09-10'),false);
 assert.equal(m.homeTodos([base,{...base,dueDate:'2026-09-10'},{...base,dueDate:'2026-09-16',priority:'high'},{...base,dueDate:'2027-01-01',priority:'high'}],'2026-09-10').length,2);
-console.log('ToDo: 20 date, recurrence, reminder, reward and Home checks passed');
+console.log('ToDo: date, recurrence, reminder, reward and Home checks passed');
 
 // Exercise existing local persistence and the Firestore transaction branch with a fake store.
 const crypto = require('node:crypto');
