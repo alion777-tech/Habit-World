@@ -1,0 +1,44 @@
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const { initializeTestEnvironment, assertFails, assertSucceeds } = require('@firebase/rules-unit-testing');
+const { doc, setDoc, deleteDoc, getDocs, collection, Timestamp, query, where } = require('firebase/firestore');
+if (!/^(127\.0\.0\.1|localhost):\d+$/.test(process.env.FIRESTORE_EMULATOR_HOST || '')) throw Error('Local emulator required');
+const [host,port] = process.env.FIRESTORE_EMULATOR_HOST.split(':');
+(async () => {
+ const env = await initializeTestEnvironment({projectId:'demo-habit-world-tests',firestore:{host,port:Number(port),rules:fs.readFileSync('firestore.rules','utf8')}});
+ try {
+  await env.clearFirestore();
+  const sender=env.authenticatedContext('sender').firestore(), recipient=env.authenticatedContext('recipient').firestore(), stranger=env.authenticatedContext('stranger').firestore();
+  const date=new Timestamp(1700000000,123456000);
+  const action={type:'dream',text:'Dream',date};
+  const context={exports:{},require:name=>name==='firebase/firestore'?require(name):{db:sender}};
+  new Function('require','exports',require('typescript').transpileModule(fs.readFileSync('lib/socialLikes.ts','utf8'),{compilerOptions:{module:require('typescript').ModuleKind.CommonJS}}).outputText)(context.require,context.exports);
+  const likes=context.exports;
+  await setDoc(doc(sender,'publicUsers','sender'),{following:['recipient']});
+  await setDoc(doc(recipient,'publicUsers','recipient'),{recentAction:{type:'dream',text:'Dream',date}});
+  const id='sender_'+Math.floor(date.toMillis()), ref=doc(sender,'publicUsers','recipient','likes',id), data={fromUid:'sender',actionDate:date};
+  assert.equal(await likes.getActivityLiked('sender','recipient',action),false);
+  await assertSucceeds(likes.setActivityLiked('sender','recipient',action,true));
+  await assertSucceeds(likes.setActivityLiked('sender','recipient',action,true));
+  assert.equal(await likes.getActivityLiked('sender','recipient',action),true);
+  await assertSucceeds(likes.setActivityLiked('sender','recipient',action,false));
+  assert.equal(await likes.getActivityLiked('sender','recipient',action),false);
+  await assertSucceeds(likes.setActivityLiked('sender','recipient',action,true));
+  assert.equal((await getDocs(collection(recipient,'publicUsers','recipient','likes'))).size,1);
+  assert.equal((await getDocs(query(collection(recipient,'publicUsers'),where('following','array-contains','recipient')))).size,1);
+  await assertFails(setDoc(doc(sender,'publicUsers','recipient','likes','duplicate'),data));
+  await assertFails(setDoc(doc(stranger,'publicUsers','recipient','likes',id),data));
+  await assertFails(deleteDoc(doc(stranger,'publicUsers','recipient','likes',id)));
+  await assertFails(deleteDoc(doc(recipient,'publicUsers','recipient','likes',id)));
+  await assertFails(setDoc(doc(recipient,'publicUsers','recipient','likes','recipient_'+Math.floor(date.toMillis())),{fromUid:'recipient',actionDate:date}));
+  await assertFails(setDoc(doc(stranger,'publicUsers','recipient','likes','stranger_'+Math.floor(date.toMillis())),{fromUid:'stranger',actionDate:date}));
+  await assertFails(setDoc(doc(sender,'publicUsers','recipient','likes','sender_1'),{fromUid:'sender',actionDate:Timestamp.fromMillis(1)}));
+  await assertFails(setDoc(ref,{...data,arbitrary:true}));
+  await setDoc(doc(recipient,'publicUsers','recipient'),{recentAction:{type:'dream',text:'Next',date:Timestamp.fromMillis(1800000000000)}});
+  await setDoc(doc(sender,'publicUsers','sender'),{following:[]});
+  await assertSucceeds(deleteDoc(ref));
+  assert.equal((await getDocs(collection(recipient,'publicUsers','recipient','likes'))).size,0);
+  await assertFails(setDoc(doc(env.unauthenticatedContext().firestore(),'publicUsers','recipient','likes',id),data));
+  console.log('PASS social likes: idempotency, counts, ownership, follow requirement, stale activity, undo and authentication');
+ } finally {await env.cleanup();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

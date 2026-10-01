@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { activityLikeId, getActivityLiked, setActivityLiked, subscribeSocialCounts, type SocialCounts } from "@/lib/socialLikes";
 import { auth } from "@/lib/firebase";
 import {
     getDiscoveryUsers,
@@ -43,6 +44,45 @@ export default function FriendView({ uid, currentUserName, isDarkMode = false }:
     const [followingList, setFollowingList] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+    const [counts, setCounts] = useState<SocialCounts>({ followers: null, following: null, likes: null });
+    const [socialError, setSocialError] = useState(false);
+    const [likedActivities, setLikedActivities] = useState<Record<string, boolean>>({});
+    const [pendingLikes, setPendingLikes] = useState<Record<string, boolean>>({});
+    const likeLocks = useRef(new Set<string>());
+    const likeKey = (user: UserProfile) => user.uid + ":" + activityLikeId(uid!, user.recentAction!);
+    useEffect(() => {
+        setCounts({ followers: null, following: null, likes: null });
+        setSocialError(false);
+        if (!uid || isAnonymous || isRegistering) return;
+        return subscribeSocialCounts(uid, patch => setCounts(current => ({ ...current, ...patch })), () => setSocialError(true));
+    }, [uid, isAnonymous, isRegistering]);
+    useEffect(() => {
+        let cancelled = false;
+        setLikedActivities({});
+        if (!uid || isAnonymous) return;
+        Promise.all(followingList.filter(user => user.recentAction).map(async user =>
+            [likeKey(user), await getActivityLiked(uid, user.uid, user.recentAction!)] as const
+        )).then(entries => { if (!cancelled) setLikedActivities(Object.fromEntries(entries)); })
+            .catch(() => { if (!cancelled) setSocialError(true); });
+        return () => { cancelled = true; };
+    }, [uid, isAnonymous, followingList]);
+    const handleLike = async (user: UserProfile) => {
+        if (!uid || !user.recentAction) return;
+        const key = likeKey(user);
+        if (likeLocks.current.has(key) || likedActivities[key] === undefined) return;
+        likeLocks.current.add(key);
+        const next = !likedActivities[key];
+        setPendingLikes(current => ({ ...current, [key]: true }));
+        try {
+            await setActivityLiked(uid, user.uid, user.recentAction, next);
+            setLikedActivities(current => ({ ...current, [key]: next }));
+        } catch { alert(tc("saveError")); }
+        finally {
+            likeLocks.current.delete(key);
+            setPendingLikes(current => ({ ...current, [key]: false }));
+        }
+    };
 
     // プロフィールが更新された際、まだ登録中で且つ名前が入ったなら登録モードを抜ける
     useEffect(() => {
@@ -295,6 +335,7 @@ export default function FriendView({ uid, currentUserName, isDarkMode = false }:
         if (showActivity && user.recentAction) {
             return (
                 <div key={user.uid} style={{
+                    display: "flex", alignItems: "center", gap: 12,
                     marginBottom: 10,
                     padding: "12px 16px",
                     background: isDarkMode ? "rgba(99,102,241,0.1)" : "#f5f3ff",
@@ -305,11 +346,18 @@ export default function FriendView({ uid, currentUserName, isDarkMode = false }:
                     fontWeight: "bold",
                     boxShadow: isDarkMode ? "0 2px 4px rgba(0,0,0,0.2)" : "0 1px 2px rgba(0,0,0,0.05)"
                 }}>
-                    {t("achievedFeed", {
+                    <span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{t("achievedFeed", {
                         name: user.name,
                         type: user.recentAction.type === "dream" ? t("dream") : t("goal"),
                         text: user.recentAction.text
-                    })}
+                    })}</span>
+                    <button type="button" aria-label={likedActivities[likeKey(user)] ? t("unlike") : t("like")}
+                        aria-pressed={!!likedActivities[likeKey(user)]}
+                        disabled={!!pendingLikes[likeKey(user)] || likedActivities[likeKey(user)] === undefined}
+                        onClick={() => void handleLike(user)}
+                        style={{ flexShrink: 0, width: 44, height: 44, display: "grid", placeItems: "center", border: "none", background: "transparent", cursor: "pointer", color: likedActivities[likeKey(user)] ? "#ef4444" : "inherit" }}>
+                        <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true" fill={likedActivities[likeKey(user)] ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg>
+                    </button>
                 </div>
             );
         }
@@ -342,6 +390,13 @@ export default function FriendView({ uid, currentUserName, isDarkMode = false }:
         <div style={{ padding: "0 4px" }}>
             <h2 style={{ fontSize: 18, marginBottom: 16, color: isDarkMode ? "#fff" : "#000", textAlign: "center" }}>{t("title")}</h2>
 
+            <div style={{ display: "flex", justifyContent: "space-around", gap: 8, marginBottom: 16, textAlign: "center" }}>
+                {(["followers", "following", "likes"] as const).map(key => <div key={key}>
+                    <strong style={{ display: "block", fontSize: 20 }}>{counts[key] ?? "—"}</strong>
+                    <span style={{ fontSize: 13 }}>{t(key === "following" ? "followingLabel" : key)}</span>
+                </div>)}
+            </div>
+            {socialError && <p role="alert">{t("socialError")}</p>}
             {/* 囲われたタブ選択エリア */}
             <div style={{
                 display: "flex", gap: 6, padding: "8px",

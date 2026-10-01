@@ -71,6 +71,12 @@
         "legacyNote": "Earlier records have no award date. These are previously earned rewards, not new points."
     },
     "Friend": {
+    "followers": "Followers",
+    "followingLabel": "Following",
+    "likes": "Likes",
+    "like": "Like",
+    "unlike": "Unlike",
+    "socialError": "Could not load counts or likes. Please reopen this page.",
     "mutualFollow": "Mutual follow",
         "searchHint": "Search names and public dreams, including spelling variations and minor typos.",
         "loadingUsers": "Loading users…",
