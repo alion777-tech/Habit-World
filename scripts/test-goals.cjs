@@ -30,6 +30,13 @@ assert.equal(ids(model.publicGoalList(ranked.filter(g=>g.id!=='a'),{isPublic:tru
 assert.equal(ids(model.moveGoal(ranked,'a',3)),'e,d,c,a');
 assert.equal(ids(model.moveGoal(rows,'b',0)),'e,d,c,a');
 assert.equal(rows[0].priorityOrder,undefined);
+const secretRows=rows.map(g=>g.id==='e'?{...g,secret:true}:g);
+assert.equal(ids(model.orderedGoals(secretRows)),'d,c,a,e,b');
+assert.equal(ids(model.orderedGoals(secretRows,true)),'e,d,c,a,b');
+assert.equal(ids(model.publicGoalList(secretRows,{isPublic:true,showGoal:true})),'d,c,a');
+assert.equal(model.isPublicGoal(ranked[3],{isPublic:true,showGoal:true}),true,'rank four is eligible');
+assert.equal(model.isPublicGoal({...ranked[3],secret:true},{isPublic:true,showGoal:true}),false);
+assert.equal(ids(model.moveGoal(secretRows,'a',0)),'a,d,c,e');
 
 let local=rows.map(g=>({...g}));
 const docs=new Map(rows.map(g=>['users/u/goals/'+g.id,{...g}]));
@@ -44,7 +51,7 @@ const firebase={
  getDocs:async r=>({docs:[...docs.keys()].filter(k=>k.startsWith(r.path+'/')).map(k=>snapshot(ref(k)))}),
  runTransaction:async(_db,fn)=>{
    const pending=[];
-   await fn({get:async r=>snapshot(r),set:(r,p)=>pending.push(()=>write(r,p)),update:(r,p)=>pending.push(()=>write(r,p))});
+   await fn({get:async r=>snapshot(r),set:(r,p)=>pending.push(()=>write(r,p)),update:(r,p)=>pending.push(()=>write(r,p)),delete:r=>pending.push(()=>docs.delete(r.path))});
    pending.forEach(fn=>fn());
  },
  writeBatch:()=>{const pending=[];return {update:(r,p)=>pending.push(()=>write(r,p)),commit:async()=>pending.forEach(fn=>fn())};},
@@ -69,14 +76,30 @@ const actions=load('lib/goalActions.ts',name=>{
  assert.equal(ids(docs.get('publicUsers/u').publicGoals),'a,e,d');
  assert.equal(docs.get('publicUsers/u').recentAction,null);
  assert.equal(docs.get('publicUsers/u').name,'Existing user');
+ await actions.updateGoal('u','c',{done:true});
+ assert.equal(docs.get('publicUsers/u').recentAction.goalId,'c','fourth-ranked goal notifies');
+ await actions.updateGoal('u','c',{secret:true});
+ assert.equal(docs.get('publicUsers/u').recentAction,null,'making goal secret retracts achievement');
+ await actions.updateGoal('u','c',{done:false});
+ await actions.updateGoal('u','c',{done:true});
+ assert.equal(docs.get('publicUsers/u').recentAction,null,'secret completion does not notify');
+ await actions.updateGoal('u','c',{secret:false});
+ assert.equal(docs.get('publicUsers/u').recentAction,null,'unsecreting does not retroactively notify');
+ await actions.updateGoal('u','c',{done:false});
  await actions.updateGoal('u','a',{done:true});
+ assert.equal(docs.get('publicUsers/u').recentAction.goalId,'a');
+ await actions.syncPublicGoals('u');
+ assert.equal(docs.get('publicUsers/u').recentAction.goalId,'a','sync keeps eligible achievement');
  assert.equal(ids(docs.get('publicUsers/u').publicGoals),'e,d,c');
  await actions.updateGoal('u','e',{title:'Updated title'});
  assert.equal(docs.get('publicUsers/u').publicGoals[0].title,'Updated title');
  await actions.deleteGoal('u','e');
  assert.equal(ids(docs.get('publicUsers/u').publicGoals),'d,c');
- docs.set('users/u',{isPublic:true,showGoal:false,showGoals:true});
- await actions.syncPublicGoals('u');
+ await actions.syncPublicGoals('u', {showGoal:false}, {showGoal:false});
+ assert.equal(docs.get('users/u').showGoal,false);
+ assert.equal(docs.get('publicUsers/u').recentAction,null,'turning publication off retracts notification');
+ await actions.updateGoal('u','d',{done:true});
+ assert.equal(docs.get('publicUsers/u').recentAction,null,'disabled publication does not notify');
  assert.equal(docs.get('publicUsers/u').publicGoals.length,0);
  const discovery=load('lib/friendDiscovery.ts');
  const publicData={isPublic:true,showGoal:true,publicGoals:[...ranked,...ranked]};
@@ -113,4 +136,6 @@ assert.equal((html.match(/ドラッグで並べ替え（上下キーでも移動
 assert.equal(html.includes('aria-label="4番"'),true);
 assert.equal(html.includes('aria-label="5番"'),false);
 assert.ok(html.lastIndexOf('>B</div>') > html.lastIndexOf('>A</div>'));
+assert.ok(html.includes('⚠️ 目標は他のユーザーに公開される場合があります。'));
+assert.ok(html.includes('秘密の目標'));
 console.log('PASS goal UI: numbered active goals, drag handles and completed goals at the bottom');

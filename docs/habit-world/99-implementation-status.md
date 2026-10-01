@@ -24,7 +24,7 @@
 | PT-09 | 旧履歴引継ぎ | earnedTitlesからdate:null履歴を補完 | 実装済み | specialPointModel.ts、HistoryView.tsx | specialPointHistory | 過去点の再加算なし |
 | PT-10 | 商品購入・pt消費 | 商品・価格・購入処理なし | 未実装 | FairyChamber.tsx | shop disabled | 価格0という意味ではない |
 | GOAL-01 | 目標 | 期限、達成、優先順 | 実装済み | DreamView、goalActions/Model | updateGoal、reorderGoals、orderedGoals | done件数を集計 |
-| GOAL-02 | 公開目標 | 未達成上位3件 | 実装済み | goalModel/Actions、FriendView | publicGoalList、syncPublicGoals | 詳細文書は本人のみ |
+| GOAL-02 | 公開目標 | 秘密以外が公開対象、カードのみ未達成上位3件 | 実装済み | goalModel/Actions、FriendView | publicGoalList、syncPublicGoals | 詳細文書は本人のみ |
 | TODO-01 | タスク管理 | 日付・カテゴリ・メモ・サブタスク等 | 実装済み | TodoView、todoModel/Actions | addTodo、updateTodo | データはprivate |
 | TODO-02 | 完了報酬・繰返し | 初回5pt、次回1件生成 | 実装済み | todoModel/Actions | completionChanges、toggleTodo | 取消しても報酬維持 |
 | TODO-03 | リマインダー | 期限前の画面内表示 | 実装済み | todoModel、TodoView | reminderActive | 定刻プッシュは未実装 |

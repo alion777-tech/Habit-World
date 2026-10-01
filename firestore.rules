@@ -63,7 +63,12 @@ service cloud.firestore {
           && request.resource.data.actionDate is timestamp
           && likeId == request.auth.uid + '_' + string(request.resource.data.actionDate.toMillis())
           && get(/databases/$(database)/documents/publicUsers/$(uid)).data.recentAction.date == request.resource.data.actionDate
-          && get(/databases/$(database)/documents/publicUsers/$(uid)).data.recentAction.type == 'dream'
+          && (get(/databases/$(database)/documents/publicUsers/$(uid)).data.recentAction.type == 'dream'
+            || (get(/databases/$(database)/documents/publicUsers/$(uid)).data.recentAction.type == 'goal'
+              && get(/databases/$(database)/documents/users/$(uid)).data.isPublic == true
+              && get(/databases/$(database)/documents/users/$(uid)).data.get('showGoal', get(/databases/$(database)/documents/users/$(uid)).data.get('showGoals', false)) == true
+              && get(/databases/$(database)/documents/users/$(uid)/goals/$(get(/databases/$(database)/documents/publicUsers/$(uid)).data.recentAction.goalId)).data.get('secret', false) == false
+              && get(/databases/$(database)/documents/users/$(uid)/goals/$(get(/databases/$(database)/documents/publicUsers/$(uid)).data.recentAction.goalId)).data.done == true))
           && uid in get(/databases/$(database)/documents/publicUsers/$(request.auth.uid)).data.following;
         // The sender can undo even after unfollowing or a newer achievement.
         allow delete: if signedIn() && resource.data.fromUid == request.auth.uid;

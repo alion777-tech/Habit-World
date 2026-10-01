@@ -27,6 +27,7 @@ export type Habit = {
 };
 
 export type Goal = {
+  secret?: boolean;
   priorityOrder?: number;
   createdAt?: Date | string | { toDate: () => Date } | null;
   id: string;
@@ -86,6 +87,7 @@ export type UserProfile = {
   showLastLogin?: boolean;
   recentAction?: {
     type: "dream" | "goal";
+    goalId?: string;
     text: string;
     date: any; // Timestamp
   } | null;

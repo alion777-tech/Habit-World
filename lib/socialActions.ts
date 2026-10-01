@@ -120,7 +120,7 @@ export const getFollowingUsers = async (currentUid: string): Promise<UserProfile
             const u = d.data();
             // users/{uid}/public/status からログイン情報を取るのがベストだが、
             // publicUsers に lastLoginAt を同期させている前提で進める（Plan通り）
-            return { ...discoveryProfile(d.id, u), recentAction: u.recentAction?.type === "dream" ? u.recentAction : null };
+            return { ...discoveryProfile(d.id, u), recentAction: u.recentAction?.type === "dream" || (u.recentAction?.type === "goal" && u.isPublic === true && u.showGoal === true && u.recentAction.goalId) ? u.recentAction : null };
         });
 
         const results = await Promise.all(promises);
@@ -139,8 +139,8 @@ export const getFollowingUsers = async (currentUid: string): Promise<UserProfile
  * 最近の活動を更新
  * 夢達成などを記録
  */
-export const updateRecentAction = async (uid: string, actionText: string, type: "dream" | "goal") => {
-    if (!uid || type === "goal") return;
+export const updateRecentAction = async (uid: string, actionText: string, type: "dream") => {
+    if (!uid) return;
     try {
         await setDoc(doc(db, "publicUsers", uid), {
             recentAction: {

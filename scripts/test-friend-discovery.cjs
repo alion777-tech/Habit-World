@@ -41,6 +41,17 @@ const actions=load('lib/socialActions.ts', name=>name==='firebase/firestore'?fir
  const result=await actions.searchUsers('Needle','me');
  assert.equal(calls,3); assert.equal(result[0].uid,'400');
  fail=true; await assert.rejects(actions.searchUsers('Needle','me'),/offline/);
+ const goalAction={type:'goal',goalId:'fourth',text:'Fourth goal',date:'today'};
+ let shared={isPublic:true,showGoal:true,recentAction:goalAction};
+ firestore.doc=(_db,_collection,id)=>id;
+ firestore.getDoc=async id=>({exists:()=>true,id,data:()=>id==='me'?{following:['other']}:shared});
+ assert.equal((await actions.getFollowingUsers('me'))[0].recentAction.goalId,'fourth');
+ shared={...shared,showGoal:false};
+ assert.equal((await actions.getFollowingUsers('me'))[0].recentAction,null);
+ shared={...shared,showGoal:true,isPublic:false};
+ assert.equal((await actions.getFollowingUsers('me'))[0].recentAction,null);
+ shared={...shared,isPublic:true,recentAction:null};
+ assert.equal((await actions.getFollowingUsers('me'))[0].recentAction,null);
  for(const locale of ['ja','en']) { const messages=JSON.parse(fs.readFileSync('messages/'+locale+'.json','utf8'));for(const key of ['searchHint','loadingUsers','searchError','retry','recommendedUsers','similarDream','sharedTitles','noRecommendations','otherUsers']) assert.equal(typeof messages.Friend[key],'string'); }
  console.log('Friend discovery: normalization, ranking, visibility, recommendations, pagination, errors and translations passed');
 })().catch(e=>{console.error(e);process.exitCode=1;});

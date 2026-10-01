@@ -40,7 +40,7 @@
 | 機能 | 現在の仕組み | 定義・主要処理 | 保存・編集先 |
 | --- | --- | --- | --- |
 | 夢 | プロフィールの `dream` 1件。10秒長押しと確認で達成。最大5回、目標を維持するか削除するかを分岐。直接のポイント報酬なし | `Home.handleDreamAchieved`、`DreamView` | `users/{uid}.dream/dreamAchievedCount`。`profileActions.ts` |
-| 目標 | 追加・期限・達成・並替え。達成中の件数×100pt。未達成優先、明示順位、作成時刻、IDの順で整列 | `goalModel.ts` の `orderedGoals` / `moveGoal`、`goalActions.ts` | `users/{uid}/goals`、`goals_v2`。公開は上位3件のみ |
+| 目標 | 追加・期限・達成・並替え。達成中の件数×100pt。未達成優先、明示順位、作成時刻、IDの順で整列 | `goalModel.ts` の `orderedGoals` / `moveGoal`、`goalActions.ts` | `users/{uid}/goals`、`goals_v2`。公開対象は秘密以外。カード表示のみ未完了上位3件 |
 | ToDo | メモ、優先度、開始日、期限、カテゴリ、ピン、サブタスク、繰返し、画面内リマインダー。初回完了+5pt | `todoModel.ts` の `completionChanges` / `nextOccurrence`、`todoActions.ts`、`TodoView.tsx` | `users/{uid}/todos`、`todos_v2`、プロフィールの `todoCategories/todoPoints` |
 | ToDo繰返し | 日・週・月。間隔1〜365、曜日0〜6、月日1〜31またはlast。完了時に次回1件を作成し、過去分はまとめて飛ばす | `nextOccurrence` / `completionChanges` | `recurrence`、`nextTodoId`。週指定日は次の該当日を優先し、差0なら7×interval日 |
 | Home | 今日の習慣と今日のToDo等を抜粋。高優先度ToDoは7日以内の期限も対象 | `HomeView.tsx`、`todoModel.ts.homeTodos` | 元の習慣/ToDoを操作 |

@@ -5,7 +5,7 @@ const end=source.indexOf('\n              style={{',start);
 const handler=source.slice(start,end).trim().slice('onClick={'.length,-1);
 (async()=>{for(const failure of ['none','create','stats']){
 let resolve,reject;const pending=new Promise((a,b)=>{resolve=a;reject=b});let calls=0,text='目標',date='2026-10-01',error='',saving=false;
-const c={addingGoal:{current:false},goalInput:text,deadline:date,uid:'u',checkLimit:()=>true,setSavingGoal:v=>saving=v,setAddError:v=>error=v,setGoalInput:v=>text=v,setDeadline:v=>date=v,addGoalAction:()=>{calls++;return pending},incrementStats:async()=>{if(failure==='stats')throw Error('stats')},t:x=>x,tc:x=>x};
+const c={newGoalSecret:true,addingGoal:{current:false},goalInput:text,deadline:date,uid:'u',checkLimit:()=>true,setSavingGoal:v=>saving=v,setAddError:v=>error=v,setGoalInput:v=>text=v,setDeadline:v=>date=v,addGoalAction:(_uid,_title,_deadline,secret)=>{assert.equal(secret,true);calls++;return pending},incrementStats:async()=>{if(failure==='stats')throw Error('stats')},t:x=>x,tc:x=>x};
 vm.createContext(c);const submit=vm.runInContext('('+handler+')',c);const operation=submit();await submit();assert.equal(calls,1);assert.equal(text,'');assert.equal(saving,true);
 if(failure==='create')reject(Error('offline'));else resolve();await operation;
 assert.equal(text,failure==='create'?'目標':'');assert.equal(date,failure==='create'?'2026-10-01':'');assert.equal(saving,false);assert.equal(c.addingGoal.current,false);assert.equal(!!error,failure!=='none');

@@ -80,8 +80,11 @@ export default function DreamView({
   const [completing, setCompleting] = useState(false);
   const t = useTranslations("Dream");
   const tc = useTranslations("Common");
-  const sorted = orderedGoals(goals);
-  const active = sorted.filter(g => !g.done);
+  const [newGoalSecret, setNewGoalSecret] = useState(false);
+  const [secretFirst, setSecretFirst] = useState(false);
+  const [privacySaving, setPrivacySaving] = useState(false);
+  const sorted = orderedGoals(goals, secretFirst);
+  const active = sorted.filter(g => !g.done && !g.secret);
   const [ordering, setOrdering] = useState(false);
   const [orderError, setOrderError] = useState(false);
   const orderLock = useRef(false);
@@ -227,6 +230,13 @@ export default function DreamView({
       {/* 目標セクション */}
       <div data-opening="goal" style={{ marginBottom: 16 }}>
         <h3 style={{ fontSize: 16, marginBottom: 8, color: isDarkMode ? "#d1d5db" : "#000" }}>{t("goalSectionTitle")}</h3>
+        <p style={{ color: isDarkMode ? "#fca5a5" : "#dc2626", fontWeight: "bold", fontSize: 13, marginBottom: 12 }}>{t("goalPrivacyWarning")}</p>
+        <button type="button" aria-pressed={newGoalSecret} disabled={savingGoal} onClick={() => {
+          if (newGoalSecret && !window.confirm(t("publishGoalConfirm"))) return;
+          setNewGoalSecret(value => !value);
+        }} style={{ fontSize: 13, padding: "6px 10px", marginBottom: 8, border: "1px solid #94a3b8", borderRadius: 8, color: "inherit" }}>
+          🔓 {t("secretGoal")}: {newGoalSecret ? "ON" : "OFF"}
+        </button>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <input
             disabled={savingGoal}
@@ -270,7 +280,7 @@ export default function DreamView({
                 setGoalInput(""); setDeadline("");
                 let created = false;
                 try {
-                  await addGoalAction(uid, submitted.trim(), submittedDeadline || undefined);
+                  await addGoalAction(uid, submitted.trim(), submittedDeadline || undefined, newGoalSecret);
                   created = true;
                   await incrementStats("goals");
                 } catch {
@@ -299,14 +309,15 @@ export default function DreamView({
       {addError && <p role="alert">{addError}</p>}
       {/* 目標一覧 */}
       <p style={{ fontSize: 12, marginBottom: 12 }}>{t("priorityHint")}</p>
+      <button type="button" onClick={() => setSecretFirst(value => !value)} style={{ fontSize: 12, padding: "4px 8px", marginBottom: 8, border: "1px solid #94a3b8", borderRadius: 6, color: "inherit" }}>{t(secretFirst ? "secretsToBottom" : "secretsToTop")}</button>
       {completionError && <p role="alert">{completionError}</p>}
       {orderError && <p role="alert">{t("orderError")}</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {sorted.map((g, index) => (
+        {sorted.map(g => (
             <div
               key={g.id}
               data-order-id={g.id}
-              data-order-group={!g.done ? "goals" : undefined}
+              data-order-group={!g.done ? (g.secret ? "secret-goals" : "goals") : undefined}
               style={{
                 padding: "6px 10px",
                 borderRadius: 10,
@@ -322,11 +333,11 @@ export default function DreamView({
                 opacity: g.done ? 0.7 : 1,
               }}
             >
-              {!g.done && <strong aria-label={t("rankLabel", { rank: index + 1 })} style={{ color: "#6366f1", fontSize: 20 }}>{index + 1}</strong>}
+              {!g.done && !g.secret && <strong aria-label={t("rankLabel", { rank: active.findIndex(item => item.id === g.id) + 1 })} style={{ color: "#6366f1", fontSize: 20 }}>{active.findIndex(item => item.id === g.id) + 1}</strong>}
               <input
                 type="checkbox"
                 aria-label={g.title}
-                disabled={ordering || completing}
+                disabled={ordering || completing || privacySaving}
                 checked={g.done}
                 onChange={async () => {
                   
@@ -352,10 +363,7 @@ export default function DreamView({
                       }, 500);
                     }
 
-                    if (uid) {
-                      const { updateRecentAction } = await import("@/lib/socialActions");
-                      await updateRecentAction(uid, g.title, "goal");
-                    }
+
                   }
                   } catch (error) { setCompletionError(error instanceof Error ? error.message : "保存できませんでした。再試行してください。"); }
                   finally { setCompleting(false); }
@@ -411,7 +419,18 @@ export default function DreamView({
                 )}
               </div>
 
-              {!g.done && <DragOrderHandle id={g.id} group="goals" disabled={ordering || completing} onMove={target => void move(g.id, active.findIndex(item => item.id === target))} />}
+              <button type="button" aria-label={t("secretGoal")} aria-pressed={!!g.secret} title={t("secretGoal")}
+                disabled={ordering || completing || privacySaving}
+                onClick={async () => {
+                  if (g.secret && !window.confirm(t("publishGoalConfirm"))) return;
+                  setPrivacySaving(true); setCompletionError("");
+                  try { await updateGoalAction(uid, g.id, { secret: !g.secret }); }
+                  catch { setCompletionError(tc("saveError")); }
+                  finally { setPrivacySaving(false); }
+                }} style={{ padding: "6px", border: "1px solid #94a3b8", borderRadius: 6, background: g.secret ? (isDarkMode ? "#4338ca" : "#e0e7ff") : "transparent", color: "inherit", fontSize: 12, flexShrink: 0 }}>
+                🔓 {g.secret ? "ON" : "OFF"}
+              </button>
+              {!g.done && <DragOrderHandle id={g.id} group={g.secret ? "secret-goals" : "goals"} disabled={ordering || completing || privacySaving} onMove={target => void move(g.id, sorted.filter(item => !item.done && !!item.secret === !!g.secret).findIndex(item => item.id === target))} />}
               <button
                 onClick={async () => {
                   if (!window.confirm(tc("confirmDelete"))) return;

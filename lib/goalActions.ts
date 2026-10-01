@@ -1,14 +1,15 @@
 import { readEconomy, syncEconomy, syncLocalEconomy } from "./economyActions";
 import { reconcileEconomy } from "./economyModel";
 // lib/goalActions.ts
-import { collection, addDoc, deleteDoc, doc, updateDoc, getDocs, runTransaction, writeBatch, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, doc, getDocs, runTransaction, writeBatch, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { LocalStorageRepository } from "./localActions";
 import { LS_KEYS } from "./dataPersistence";
 import type { Goal, Habit } from "@/types/appTypes";
-import { publicGoalList } from "./goalModel";
+import { publicGoalList, isPublicGoal } from "./goalModel";
 
 export type GoalDoc = {
+  secret?: boolean;
   id: string;
   title: string;
   deadline?: string | null;
@@ -17,7 +18,7 @@ export type GoalDoc = {
   achievedAt?: any;
 };
 
-export const addGoal = async (uid: string | null, title: string, deadline?: string) => {
+export const addGoal = async (uid: string | null, title: string, deadline?: string, secret = false) => {
   if (!title.trim()) return;
 
   if (uid) {
@@ -25,6 +26,7 @@ export const addGoal = async (uid: string | null, title: string, deadline?: stri
       title: title.trim(),
       deadline: deadline || null,
       done: false,
+      secret,
       visibility: "private",
       createdAt: serverTimestamp(),
     });
@@ -34,6 +36,7 @@ export const addGoal = async (uid: string | null, title: string, deadline?: stri
       title: title.trim(),
       deadline: deadline || null,
       done: false,
+      secret,
       createdAt: new Date(),
     };
     LocalStorageRepository.addItem(LS_KEYS.GOALS, newGoal);
@@ -44,7 +47,7 @@ export const addGoal = async (uid: string | null, title: string, deadline?: stri
 export const updateGoal = async (
   uid: string | null,
   goalId: string,
-  fields: Partial<{ title: string; deadline: string | null; done: boolean }>
+  fields: Partial<{ title: string; deadline: string | null; done: boolean; secret: boolean }>
 ) => {
   if (!goalId) return;
 
@@ -58,8 +61,17 @@ export const updateGoal = async (
     }
     await runTransaction(db, async tx => {
       const state = await readEconomy(tx, uid);
+      const publicRef = doc(db, "publicUsers", uid);
+      const previous = (await tx.get(publicRef)).data() || {};
+      const oldGoal = state.goals.find(g => g.id === goalId);
       const next = state.goals.map(g => g.id === goalId ? { ...g, ...data } : g);
       const economy = reconcileEconomy({ ...state.profile, economy: state.economy }, state.habits, next);
+      const updated = next.find(g => g.id === goalId);
+      let recentAction = visibleGoalAction(previous.recentAction, next, state.profile);
+      if (fields.done === true && oldGoal && !oldGoal.done && updated && isPublicGoal(updated, state.profile)) {
+        recentAction = { type: "goal", goalId, text: updated.title, date: serverTimestamp() };
+      }
+      tx.set(publicRef, { publicGoals: publicGoalList(next, state.profile), recentAction }, { merge: true });
       tx.update(doc(db, "users", uid, "goals", goalId), data);
       tx.set(state.ref, { economy, stats: { ...state.profile.stats, goalsAchievedCount: next.filter(g => g.done).length } }, { merge: true });
     });
@@ -75,33 +87,48 @@ export const updateGoal = async (
     const economy = reconcileEconomy(profile, LocalStorageRepository.getList<Habit>(LS_KEYS.HABITS), goals);
     LocalStorageRepository.saveCompletion(LS_KEYS.GOALS, goals, { ...profile, economy, stats: { ...profile.stats, goalsAchievedCount: goals.filter(g => g.done).length } });
   }
-  if (uid) await syncPublicGoals(uid).catch(error => console.error("[PublicGoals] Completion saved; publication will retry on next load", error));
+
 };
 
 export const deleteGoal = async (uid: string | null, goalId: string) => {
   if (!goalId) return;
   await syncEconomy(uid);
   if (uid) {
-    await deleteDoc(doc(db, "users", uid, "goals", goalId));
+    await runTransaction(db, async tx => {
+      const state = await readEconomy(tx, uid);
+      const publicRef = doc(db, "publicUsers", uid);
+      const previous = (await tx.get(publicRef)).data() || {};
+      const next = state.goals.filter(g => g.id !== goalId);
+      tx.delete(doc(db, "users", uid, "goals", goalId));
+      tx.set(publicRef, { publicGoals: publicGoalList(next, state.profile), recentAction: visibleGoalAction(previous.recentAction, next, state.profile) }, { merge: true });
+    });
   } else {
     LocalStorageRepository.deleteItem(LS_KEYS.GOALS, goalId);
   }
   if (uid) await syncPublicGoals(uid);
 };
 
-/** Private source documents remain private; only the first three active goals are copied. */
-export async function syncPublicGoals(uid: string, publicPatch: Record<string, unknown> = {}) {
+function visibleGoalAction(action: any, goals: Goal[], profile: Parameters<typeof isPublicGoal>[1]) {
+  if (action?.type !== "goal") return action ?? null;
+  const goal = goals.find(g => g.id === action.goalId);
+  return goal?.done && isPublicGoal(goal, profile) ? { ...action, text: goal.title } : null;
+}
+
+/** Only the card preview is limited to three. Secret source documents stay private. */
+export async function syncPublicGoals(uid: string, publicPatch: Record<string, unknown> = {}, privatePatch: Record<string, unknown> = {}) {
   const list = await getDocs(collection(db, "users", uid, "goals"));
   await runTransaction(db, async tx => {
-    const user = (await tx.get(doc(db, "users", uid))).data() || {};
+    const userRef = doc(db, "users", uid);
+    const user = { ...(await tx.get(userRef)).data(), ...privatePatch };
     const publicRef = doc(db, "publicUsers", uid);
     const previous = (await tx.get(publicRef)).data() || {};
     const snapshots = await Promise.all(list.docs.map(d => tx.get(d.ref)));
     const goals = snapshots.filter(d => d.exists()).map(d => ({ ...d.data(), id: d.id } as Goal));
     const publicGoals = publicGoalList(goals, user);
     const showGoal = typeof user.showGoal === "boolean" ? user.showGoal : user.showGoals === true;
+    if (Object.keys(privatePatch).length) tx.set(userRef, privatePatch, { merge: true });
     tx.set(publicRef, { ...publicPatch, isPublic: user.isPublic === true, showGoal, publicGoals,
-      ...(previous.recentAction?.type === "goal" ? { recentAction: null } : {}),
+      recentAction: visibleGoalAction(previous.recentAction, goals, user),
     }, { merge: true });
   });
 }

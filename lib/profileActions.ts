@@ -99,9 +99,11 @@ export const saveUserProfile = async (uid: string | null, profile: Partial<UserP
   };
 
   try {
-    await setDoc(doc(db, "users", uid), batch, { merge: true });
-    if ("showGoal" in profile || "isPublic" in profile) await syncPublicGoals(uid, batch);
-    else await setDoc(doc(db, "publicUsers", uid), batch, { merge: true });
+    if ("showGoal" in profile || "isPublic" in profile) await syncPublicGoals(uid, batch, batch);
+    else {
+      await setDoc(doc(db, "users", uid), batch, { merge: true });
+      await setDoc(doc(db, "publicUsers", uid), batch, { merge: true });
+    }
   } catch (e) {
     console.error(`[saveUserProfile] Error saving profile for ${uid}:`, e);
     throw e;
