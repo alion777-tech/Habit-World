@@ -35,12 +35,14 @@ function harness(reduced = false) {
       ? { useLocale: () => 'ja' } : name.includes('useWardrobe') ? { useWardrobe: () => ({ purchased: [], equipped: {}, colors: {} }) } : { default: {} },
   };
   vm.runInNewContext(code, context);
-  const tree = context.exports.default();
+  let roomOpened = false;
+  const tree = context.exports.default({ onOpenRoom: () => { roomOpened = true; } });
+  tree.props.children[0].props.children[1].props.onClick();
+  assert.ok(roomOpened, "room button opens fairy room");
   cleanup = effect();
   return { element, media, doc, win, navigation, events, frames, cleanup,
     choose: (v) => { choice = v; },
     pause: tree.props.children[0].props.children[0].props.onClick,
-    preview: (index) => tree.props.children[0].props.children[1][index].props.onClick(),
     advance: (ms) => { for (let i = 0; i < ms; i += 16) {
       clock += 16;
       const callbacks = [...frames.values()]; frames.clear();
@@ -67,7 +69,8 @@ for (const choice of [0.2, 0.4, 0.55, 0.7, 0.95]) {
   for (let i = 0; i < 2400; i++) { h.advance(16); seen.add(h.element.dataset.action); }
 }
 for (const state of ['fly', 'hover', 'rest', 'leave', 'away', 'enter', 'land', 'walk', 'takeoff', 'peek']) assert.ok(seen.has(state), state);
-h.preview(1); h.advance(1900);
+h.choose(0.7);
+for (let i = 0; i < 3000 && h.element.dataset.action !== "walk"; i++) h.advance(16);
 assert.equal(h.element.dataset.action, 'walk');
 const walkingY = () => Number(h.element.style.transform.match(/, ([\d.]+)px, 0\)/)[1]);
 const assertAboveNavigation = () => {
@@ -86,7 +89,8 @@ assertAboveNavigation();
 h.doc.querySelector = () => null;
 h.advance(16);
 assert.ok(walkingY() <= 376 && walkingY() >= 372, 'preview without navigation uses viewport floor');
-h.preview(2); h.advance(2600);
+h.choose(0.95);
+for (let i = 0; i < 3000 && h.element.dataset.action !== "away"; i++) h.advance(16);
 assert.equal(h.element.dataset.action, 'away');
 h.doc.hidden = true; h.events.get('doc:visibilitychange')();
 assert.equal(h.frames.size, 0, 'hidden tab cancels animation');

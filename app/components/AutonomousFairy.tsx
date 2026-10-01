@@ -11,15 +11,13 @@ import { useWardrobe } from '../../hooks/useWardrobe';
 
 type Point = { x: number; y: number };
 type Action = "enter" | "fly" | "hover" | "rest" | "leave" | "away" | "peek" | "land" | "walk" | "takeoff";
-type Preview = "fly" | "walk" | "peek";
 const random = (min: number, max: number) => min + Math.random() * (max - min);
 
 /** Movement remains independent of the read-only dialogue context. */
-export default function AutonomousFairy({ context, uid }: { context?: FairyContext;uid?:string|null } = {}) {
+export default function AutonomousFairy({ context, uid, onOpenRoom }: { context?: FairyContext;uid?:string|null; onOpenRoom?: () => void } = {}) {
   const wardrobe=useWardrobe(uid);
   const sprite = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
-  const previewRef = useRef<Preview | null>(null);
   const [paused, setPaused] = useState(false);
   const japanese = useLocale().startsWith("ja");
   const [speechRequest, setSpeechRequest] = useState(0);
@@ -137,13 +135,6 @@ export default function AutonomousFairy({ context, uid }: { context?: FairyConte
         paint();
       }
       if (!pausedRef.current && !media.matches) {
-        if (previewRef.current) {
-          const requested = previewRef.current;
-          previewRef.current = null;
-          if (requested === "peek") leave();
-          else if (requested === "walk") begin("land", { x: Math.max(8, Math.min(position.x, bounds.width - bounds.size - 8)), y: floor() }, 1800);
-          else begin("fly", destination(), 3500);
-        }
         clock += delta;
         elapsed += delta;
         const progress = Math.min(elapsed / duration, 1);
@@ -186,16 +177,9 @@ export default function AutonomousFairy({ context, uid }: { context?: FairyConte
         }}>
           {japanese ? (paused ? "妖精の移動を再開" : "妖精の移動を一時停止") : (paused ? "Resume fairy" : "Pause fairy")}
         </button>
-        {(["fly", "walk", "peek"] as Preview[]).map((preview) => (
-          <button key={preview} type="button" onClick={() => {
-            previewRef.current = preview;
-            pausedRef.current = false;
-            setPaused(false);
-          }}>
-            {japanese ? ({ fly: "飛ぶ", walk: "歩く", peek: "のぞく" })[preview]
-              : ({ fly: "Fly", walk: "Walk", peek: "Peek" })[preview]}
-          </button>
-        ))}
+        {onOpenRoom && <button type="button" onClick={onOpenRoom}>
+          {japanese ? "妖精の部屋" : "Fairy room"}
+        </button>}
       </div>
       <div className={styles.layer}>
         <div ref={sprite} className={styles.sprite} role="button" tabIndex={0}

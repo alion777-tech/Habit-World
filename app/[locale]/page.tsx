@@ -707,7 +707,7 @@ export default function Home() {
         transition: "background 0.3s"
       }}>
         <div ref={contentRef} className="app-content">
-        {!openingVisible && !isLoading && view !== "fairyRoom" && profile.uid === uid && profile.fairy?.status === "ready" && <AutonomousFairy uid={uid} key={`fairy-${uid || "local"}`} context={{
+        {!openingVisible && !isLoading && view !== "fairyRoom" && profile.uid === uid && profile.fairy?.status === "ready" && <AutonomousFairy onOpenRoom={() => setView("fairyRoom")} uid={uid} key={`fairy-${uid || "local"}`} context={{
           account: uid || "local", ready: !isLoading && habitsLoadedFor === (uid || "local"),
           total: habits.filter(h => h.type === "daily" || h.daysOfWeek?.includes(todayDow)).length,
           completed: habits.filter(h => (h.type === "daily" || h.daysOfWeek?.includes(todayDow)) && h.pointHistory.some(p => p.date === todayStr)).length,
@@ -1134,7 +1134,7 @@ export default function Home() {
 
         </div>
         <nav className="primary-nav" aria-label="Main navigation" style={{ background: isDarkMode ? "#1f2937" : "white" }}>
-          {(["home", "habit", "todo", "dream", "profile"] as const).map(id => <button key={id} data-opening={`tab-${id}`} aria-current={view === id ? "page" : undefined} onClick={() => setView(id)} style={{ color: view === id ? "#6366f1" : "inherit" }}>{id === "home" ? "Home" : tt(id)}</button>)}
+          {(["home", "habit", "todo", "dream", "friend"] as const).map(id => <button key={id} data-opening={`tab-${id}`} aria-current={view === id ? "page" : undefined} onClick={() => setView(id)} style={{ color: view === id ? "#6366f1" : "inherit" }}>{id === "home" ? "Home" : tt(id)}</button>)}
         </nav>
       </div>
     </main >
