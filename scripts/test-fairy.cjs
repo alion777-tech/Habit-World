@@ -16,7 +16,11 @@ function harness(reduced = false) {
   const element = { offsetWidth: 64, offsetHeight: 96, style: {}, dataset: {}, firstElementChild: { style: {} } };
   const media = { matches: reduced, ...target('media:') };
   const navigation = { top: 536, height: 64 };
-  const doc = { body: {}, hidden: false, querySelector: () => ({ getBoundingClientRect: () => navigation }), ...target('doc:') };
+  const panel = { left: 120, top: 0, width: 560, height: 600 };
+  const doc = { body: {}, hidden: false, querySelector: selector => {
+    const rect = selector === '.app-panel' ? panel : selector === '.primary-nav' ? navigation : null;
+    return rect && { getBoundingClientRect: () => rect };
+  }, ...target('doc:') };
   const win = { innerWidth: 800, innerHeight: 600, matchMedia: () => media, ...target('win:') };
   let effect, cleanup, clock = 0, id = 0, choice = 0.2;
   const frames = new Map();
@@ -61,7 +65,7 @@ function harness(reduced = false) {
   assert.equal(stateValues[1],5,'cancelled pointer does not suppress the next click');
   talk.onClick({detail:0});
   assert.equal(stateValues[1],6,'accessible click still works');
-  return { element, media, doc, win, navigation, events, frames, cleanup,
+  return { element, media, doc, win, navigation, panel, events, frames, cleanup,
     choose: (v) => { choice = v; },
     pause: tree.props.children[0].props.children[0].props.onClick,
     advance: (ms) => { for (let i = 0; i < ms; i += 16) {
@@ -73,6 +77,8 @@ function harness(reduced = false) {
 }
 const h = harness();
 const start = h.element.style.transform;
+assert.equal(Number(start.match(/translate3d\(([-\d.]+)px/)[1]), h.panel.left + h.panel.width + h.element.offsetWidth,
+  'fairy enters from the app panel edge');
 h.advance(1600);
 assert.notEqual(h.element.style.transform, start, 'moves without user input');
 h.pause();
@@ -94,20 +100,24 @@ h.choose(0.7);
 for (let i = 0; i < 3000 && h.element.dataset.action !== "walk"; i++) h.advance(16);
 assert.equal(h.element.dataset.action, 'walk');
 const walkingY = () => Number(h.element.style.transform.match(/, ([\d.]+)px, 0\)/)[1]);
+const walkingX = () => Number(h.element.style.transform.match(/translate3d\(([-\d.]+)px/)[1]);
 const assertAboveNavigation = () => {
   const floor = h.navigation.top - h.element.offsetHeight - 8;
   assert.ok(walkingY() <= floor && walkingY() >= floor - 4, 'whole sprite walks above navigation with bob clearance');
+  assert.ok(walkingX() >= h.panel.left + 8 && walkingX() <= h.panel.left + h.panel.width - h.element.offsetWidth - 8,
+    'fairy walks within the app panel');
 };
 assertAboveNavigation();
 h.navigation.top = 512; h.navigation.height = 88;
 h.advance(16);
 assertAboveNavigation();
 h.win.innerWidth = 320; h.win.innerHeight = 480;
+h.panel.left = 10; h.panel.width = 300; h.panel.height = 480;
 h.navigation.top = 400; h.navigation.height = 80;
 h.events.get('win:resize')(); h.advance(16);
 assert.equal(h.element.dataset.action, 'walk', 'resize preserves walking');
 assertAboveNavigation();
-h.doc.querySelector = () => null;
+h.doc.querySelector = selector => selector === '.app-panel' ? { getBoundingClientRect: () => h.panel } : null;
 h.advance(16);
 assert.ok(walkingY() <= 376 && walkingY() >= 372, 'preview without navigation uses viewport floor');
 h.choose(0.95);

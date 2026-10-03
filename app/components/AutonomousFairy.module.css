@@ -11,7 +11,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: clamp(48px, 7vw, 80px);
+  width: 72px;
   visibility: hidden;
   pointer-events: auto;
   cursor: pointer;
