@@ -29,7 +29,6 @@ export default function FairySpeech({ sprite, request, context = {}, locale }: {
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
-    if (context.ready === false) return;
     const key = "habit-world:fairy:v1:" + (context.account || "local");
     const memory = readMemory(key);
     const started = Date.now();
@@ -48,20 +47,22 @@ export default function FairySpeech({ sprite, request, context = {}, locale }: {
       try { localStorage.setItem(key, JSON.stringify(memory)); } catch { /* Storage is optional. */ }
     };
     save();
-    const show = () => {
+    const show = (manual = false) => {
       const now = Date.now();
+      if (!manual && current.current.ready === false) return;
       if (document.hidden) return;
       const element = sprite.current;
       if (!element || element.dataset.action === "away") return;
       const result = selectDialogue({
         ...current.current,
+        ...(current.current.ready === false ? { total: undefined, completed: undefined, streak: undefined } : {}),
         hour: Number(new Intl.DateTimeFormat("en", { timeZone: "Asia/Tokyo", hour: "numeric", hourCycle: "h23" }).format(now)),
         action: element.dataset.action,
         sessionMs: now - started,
         idleMs: Math.max(now - lastActivity, idleBeforeActivity),
         login: now < loginExpires ? login : undefined,
         event: pending && now < pending.expires ? pending.event : undefined,
-      }, memory.history, now, locale);
+      }, memory.history, now, locale, Math.random, manual);
       if (!result) return;
       login = undefined;
       loginExpires = 0;
@@ -77,7 +78,7 @@ export default function FairySpeech({ sprite, request, context = {}, locale }: {
       fadeTimer = setTimeout(() => setFading(true), duration);
       hideTimer = setTimeout(() => setMessage(null), duration + 300);
     };
-    speak.current = show;
+    speak.current = () => show(true);
     const activity = () => {
       idleBeforeActivity = Date.now() - lastActivity;
       lastActivity = Date.now();

@@ -35,7 +35,7 @@ export function categories(c: DialogueContext): Category[] {
 }
 
 /** Bounded text history also avoids duplicates shared by different categories. */
-export function selectDialogue(c: DialogueContext, history: HistoryEntry[], now: number, locale = "ja", rng = Math.random) {
+export function selectDialogue(c: DialogueContext, history: HistoryEntry[], now: number, locale = "ja", rng = Math.random, manual = false) {
   const bank: Partial<Record<Category, string[]>> = locale.startsWith("ja") ? japanese : english;
   const keys = categories(c);
   const key = keys[Math.min(keys.length - 1, Math.floor(rng() * keys.length))];
@@ -44,7 +44,8 @@ export function selectDialogue(c: DialogueContext, history: HistoryEntry[], now:
   const recent = new Set(history.filter(h => now - h.at < 86400000).map(h => h.text));
   let pool = candidates.filter(t => t !== last && !recent.has(t));
   if (!pool.length) pool = candidates.filter(t => t !== last && !history.some(h => h.text === t && now - h.at < 60000));
-  // Stay silent instead of repeating a tiny exhausted category in a short burst.
+  // Explicit taps always get a reply; automatic events still respect cooldowns.
+  if (!pool.length && manual) pool = candidates.filter(t => t !== last);
   if (!pool.length) return null;
   const text = pool[Math.min(pool.length - 1, Math.floor(rng() * pool.length))];
   return { text, category: key, history: [...history, { text, at: now }].slice(-80) };

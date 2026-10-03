@@ -56,6 +56,9 @@ for(const storageFails of [false,true]) {
   assert.equal(h.intervals.size,0);
 }
 const waiting=harness(false,false);
-assert.equal(waiting.states[0],null,"no dialogue during loading");
-assert.equal(waiting.listeners.size,0);
+assert.ok(waiting.states[0]?.text,"explicit tap responds even while habit data is loading");
+const waitingText = waiting.states[0].text;
+waiting.listeners.get("fairy-dialogue")({detail:"goalCompleted"});
+assert.equal(waiting.states[0].text,waitingText,"automatic events stay quiet during loading");
+waiting.cleanup();
 console.log("PASS speech events, timer replacement, fade/hide, storage failures, away state, loading, cleanup");

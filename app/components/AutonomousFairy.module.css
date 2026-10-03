@@ -55,6 +55,7 @@
 }
 .avatarBody { width:100%;transform-origin:50% 85%;will-change:transform; }
 .avatarBody img { will-change:auto; }
+.sprite .avatarBody, .sprite .avatarBody * { pointer-events: none; }
 
 .sprite:focus-visible { outline: 3px solid #6366f1; outline-offset: -2px; }
 

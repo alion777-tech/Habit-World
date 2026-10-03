@@ -38,6 +38,8 @@ for(let i=0;i<6;i++) {
 }
 assert.equal(new Set(results).size,6);
 assert.equal(selectDialogue({hour:9,event:"firstHabit"},history,now+10,"ja",()=>0),null);
+assert.ok(selectDialogue({hour:9,event:"firstHabit"},history,now+10,"ja",()=>0,true),"manual taps respond after category exhaustion");
+assert.notEqual(selectDialogue({hour:9,event:"firstHabit"},history,now+10,"ja",()=>0,true).text,history[history.length-1].text);
 assert.ok(selectDialogue({hour:9,event:"firstHabit"},history,now+61000,"ja",()=>0));
 assert.ok(selectDialogue({hour:9,event:"firstHabit"},[],now,"en",()=>0).text.match(/[A-Za-z]/));
 for(const [w,h] of [[320,480],[800,600],[180,240]]) {

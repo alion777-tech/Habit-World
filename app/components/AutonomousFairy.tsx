@@ -184,7 +184,8 @@ export default function AutonomousFairy({ context, uid, onOpenRoom }: { context?
       <div className={styles.layer}>
         <div ref={sprite} className={styles.sprite} role="button" tabIndex={0}
           aria-label={japanese ? "妖精と話す" : "Talk to the fairy"}
-          onClick={() => setSpeechRequest(n => n + 1)}
+          onPointerDown={e => { if (e.isPrimary && e.button === 0) setSpeechRequest(n => n + 1); }}
+          onClick={e => { if (e.detail === 0) setSpeechRequest(n => n + 1); }}
           onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSpeechRequest(n => n + 1); } }}>
           {wardrobe?.closetPurchased?<div className={styles.avatarBody}><AvatarFigure avatar={wardrobe.equipped} adjustments={wardrobe.adjustments}/></div>:<div className={styles.avatarBody}><AvatarFigure avatar={DEFAULT}/></div>}
         </div>
