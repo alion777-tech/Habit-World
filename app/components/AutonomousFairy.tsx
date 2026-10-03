@@ -31,7 +31,7 @@ export default function AutonomousFairy({ context, uid, onOpenRoom }: { context?
     const element = sprite.current;
     if (!element) return;
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let bounds = { left: 0, top: 0, width: 0, height: 0, size: 0 };
+    let bounds = { width: 0, height: 0, size: 0 };
     let from: Point = { x: 0, y: 0 };
     let to: Point = { x: 0, y: 0 };
     let position: Point = { x: 0, y: 0 };
@@ -46,7 +46,7 @@ export default function AutonomousFairy({ context, uid, onOpenRoom }: { context?
     const floor = () => {
       const navigation = document.querySelector<HTMLElement>(".primary-nav")?.getBoundingClientRect();
       const bottom = navigation && navigation.height > 0
-        ? Math.min(bounds.height, navigation.top - bounds.top) : bounds.height;
+        ? Math.min(bounds.height, navigation.top) : bounds.height;
       return Math.max(0, bottom - element.offsetHeight - 8);
     };
     const destination = (): Point => ({
@@ -69,7 +69,7 @@ export default function AutonomousFairy({ context, uid, onOpenRoom }: { context?
         : flying ? (direction * 9 + Math.sin(clock / 280) * 4) * strength : Math.sin(clock / 900) * 2;
       const squash = media.matches ? 0 : action === "walk" ? Math.abs(step) * 0.035
         : flying ? Math.sin(clock / 130) * 0.025 * strength : 0;
-      element.style.transform = `translate3d(${bounds.left + position.x}px, ${bounds.top + position.y + bob}px, 0)`;
+      element.style.transform = `translate3d(${position.x}px, ${position.y + bob}px, 0)`;
       // The inner image acts independently of its flight path, using the same clock
       // so pause, tab visibility and reduced motion also freeze the pose.
       const body = element.firstElementChild as HTMLElement | null;
@@ -78,14 +78,7 @@ export default function AutonomousFairy({ context, uid, onOpenRoom }: { context?
       element.dataset.action = action;
     };
     const resize = () => {
-      const panel = document.querySelector<HTMLElement>(".app-panel")?.getBoundingClientRect();
-      bounds = {
-        left: panel?.left ?? 0,
-        top: panel?.top ?? 0,
-        width: panel?.width ?? window.innerWidth,
-        height: panel?.height ?? window.innerHeight,
-        size: element.offsetWidth,
-      };
+      bounds = { width: window.innerWidth, height: window.innerHeight, size: element.offsetWidth };
       if (action === "walk") {
         const clampX = (x: number) => Math.max(8, Math.min(x, bounds.width - bounds.size - 8));
         from = { x: clampX(from.x), y: floor() };

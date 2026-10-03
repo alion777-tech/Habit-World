@@ -77,8 +77,8 @@ function harness(reduced = false) {
 }
 const h = harness();
 const start = h.element.style.transform;
-assert.equal(Number(start.match(/translate3d\(([-\d.]+)px/)[1]), h.panel.left + h.panel.width + h.element.offsetWidth,
-  'fairy enters from the app panel edge');
+assert.equal(Number(start.match(/translate3d\(([-\d.]+)px/)[1]), h.win.innerWidth + h.element.offsetWidth,
+  'fairy enters from the viewport edge, beyond the app panel');
 h.advance(1600);
 assert.notEqual(h.element.style.transform, start, 'moves without user input');
 h.pause();
@@ -91,11 +91,20 @@ h.pause();
 h.advance(2000);
 assert.notEqual(h.element.style.transform, stopped, 'resume continues');
 const seen = new Set();
+const awayPositions = [];
 for (const choice of [0.2, 0.4, 0.55, 0.7, 0.95]) {
   h.choose(choice);
-  for (let i = 0; i < 2400; i++) { h.advance(16); seen.add(h.element.dataset.action); }
+  for (let i = 0; i < 2400; i++) {
+    h.advance(16);
+    seen.add(h.element.dataset.action);
+    if (h.element.dataset.action === 'away') {
+      awayPositions.push(Number(h.element.style.transform.match(/translate3d\(([-\d.]+)px/)[1]));
+    }
+  }
 }
 for (const state of ['fly', 'hover', 'rest', 'leave', 'away', 'enter', 'land', 'walk', 'takeoff', 'peek']) assert.ok(seen.has(state), state);
+assert.ok(awayPositions.length > 0 && awayPositions.every(x => x <= -h.element.offsetWidth || x >= h.win.innerWidth),
+  'fairy only disappears after leaving the viewport');
 h.choose(0.7);
 for (let i = 0; i < 3000 && h.element.dataset.action !== "walk"; i++) h.advance(16);
 assert.equal(h.element.dataset.action, 'walk');
@@ -104,8 +113,8 @@ const walkingX = () => Number(h.element.style.transform.match(/translate3d\(([-\
 const assertAboveNavigation = () => {
   const floor = h.navigation.top - h.element.offsetHeight - 8;
   assert.ok(walkingY() <= floor && walkingY() >= floor - 4, 'whole sprite walks above navigation with bob clearance');
-  assert.ok(walkingX() >= h.panel.left + 8 && walkingX() <= h.panel.left + h.panel.width - h.element.offsetWidth - 8,
-    'fairy walks within the app panel');
+  assert.ok(walkingX() >= 8 && walkingX() <= h.win.innerWidth - h.element.offsetWidth - 8,
+    'fairy walks within the whole viewport');
 };
 assertAboveNavigation();
 h.navigation.top = 512; h.navigation.height = 88;
