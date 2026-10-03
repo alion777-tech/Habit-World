@@ -21,6 +21,7 @@ function harness(reduced = false) {
   let effect, cleanup, clock = 0, id = 0, choice = 0.2;
   const frames = new Map();
   let refCount = 0;
+  const stateValues = [];
   const jsx = (type, props) => ({ type, props });
   const context = {
     exports: {}, window: win, document: doc,
@@ -29,7 +30,11 @@ function harness(reduced = false) {
     cancelAnimationFrame: (key) => frames.delete(key),
     require: (name) => name === 'react' ? {
       useRef: (initial) => ({ current: refCount++ === 0 ? element : initial }),
-      useState: (initial) => [initial, () => {}],
+      useState: (initial) => {
+        const index = stateValues.length;
+        stateValues.push(initial);
+        return [initial, value => { stateValues[index] = typeof value === 'function' ? value(stateValues[index]) : value; }];
+      },
       useEffect: (fn) => { effect = fn; },
     } : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx } : name === 'next-intl'
       ? { useLocale: () => 'ja' } : name.includes('useWardrobe') ? { useWardrobe: () => ({ purchased: [], equipped: {}, colors: {} }) } : { default: {} },
@@ -40,6 +45,20 @@ function harness(reduced = false) {
   tree.props.children[0].props.children[1].props.onClick();
   assert.ok(roomOpened, "room button opens fairy room");
   cleanup = effect();
+  const talk = tree.props.children[1].props.children.props;
+  talk.onClick({detail:1});
+  assert.equal(stateValues[1],1,'ordinary PC click works without pointerdown');
+  talk.onPointerDown({isPrimary:true,button:0});
+  talk.onClick({detail:1});
+  assert.equal(stateValues[1],2,'pointerdown plus click speaks once');
+  talk.onClick({detail:1});
+  assert.equal(stateValues[1],3,'another ordinary click speaks again');
+  talk.onPointerDown({isPrimary:true,button:0});
+  talk.onPointerCancel();
+  talk.onClick({detail:1});
+  assert.equal(stateValues[1],5,'cancelled pointer does not suppress the next click');
+  talk.onClick({detail:0});
+  assert.equal(stateValues[1],6,'accessible click still works');
   return { element, media, doc, win, navigation, events, frames, cleanup,
     choose: (v) => { choice = v; },
     pause: tree.props.children[0].props.children[0].props.onClick,

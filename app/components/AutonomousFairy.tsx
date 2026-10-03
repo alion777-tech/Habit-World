@@ -21,6 +21,7 @@ export default function AutonomousFairy({ context, uid, onOpenRoom }: { context?
   const [paused, setPaused] = useState(false);
   const japanese = useLocale().startsWith("ja");
   const [speechRequest, setSpeechRequest] = useState(0);
+  const pointerSpoke = useRef(false);
 
   useEffect(() => {
     const element = sprite.current;
@@ -184,8 +185,16 @@ export default function AutonomousFairy({ context, uid, onOpenRoom }: { context?
       <div className={styles.layer}>
         <div ref={sprite} className={styles.sprite} role="button" tabIndex={0}
           aria-label={japanese ? "妖精と話す" : "Talk to the fairy"}
-          onPointerDown={e => { if (e.isPrimary && e.button === 0) setSpeechRequest(n => n + 1); }}
-          onClick={e => { if (e.detail === 0) setSpeechRequest(n => n + 1); }}
+          onPointerDown={e => {
+            pointerSpoke.current = e.isPrimary && e.button === 0;
+            if (pointerSpoke.current) setSpeechRequest(n => n + 1);
+          }}
+          onPointerCancel={() => { pointerSpoke.current = false; }}
+          onClick={e => {
+            // Normal mouse clicks must work even if no pointerdown was delivered.
+            if (e.detail === 0 || !pointerSpoke.current) setSpeechRequest(n => n + 1);
+            pointerSpoke.current = false;
+          }}
           onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSpeechRequest(n => n + 1); } }}>
           {wardrobe?.closetPurchased?<div className={styles.avatarBody}><AvatarFigure avatar={wardrobe.equipped} adjustments={wardrobe.adjustments}/></div>:<div className={styles.avatarBody}><AvatarFigure avatar={DEFAULT}/></div>}
         </div>
