@@ -30,6 +30,9 @@ const MENU = [
 ] as const;
 type Panel = Exclude<typeof MENU[number]["id"], "closet" | "shop" | "council"> | "name";
 const RANKINGS = [{ id: "growth", label: "総合獲得ポイント" }, { id: "login", label: "累計ログイン日数" }, { id: "adventure", label: "冒険ポイント" }] as const;
+const roomHour = () => Number(new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Tokyo", hour: "numeric", hourCycle: "h23",
+}).format(new Date()));
 type Props = {
   uid: string;
   fairy: NonNullable<UserProfile["fairy"]>;
@@ -47,6 +50,7 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLe
   const wardrobe=useWardrobe(uid);
   const [saved, setSaved] = useState(room);
   const [now, setNow] = useState<number | null>(null);
+  const [nightBackground, setNightBackground] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [panel, setPanel] = useState<Panel | null>(null);
@@ -85,6 +89,25 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLe
     return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", refresh); };
   }, [sync]);
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const refreshBackground = () => {
+      const hour = roomHour();
+      setNightBackground(hour >= 19 || hour < 5);
+    };
+    const schedule = () => {
+      refreshBackground();
+      timer = setTimeout(schedule, 60000 - Date.now() % 60000 + 50);
+    };
+    schedule();
+    document.addEventListener("visibilitychange", refreshBackground);
+    window.addEventListener("pageshow", refreshBackground);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", refreshBackground);
+      window.removeEventListener("pageshow", refreshBackground);
+    };
+  }, []);
+  useEffect(() => {
     if (panel && !dialog.current?.open) dialog.current?.showModal();
     if (!panel && dialog.current?.open) dialog.current.close();
   }, [panel]);
@@ -100,7 +123,7 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLe
   return <section className={styles.root} aria-label="妖精の部屋">
     <header className={styles.header}><div><span className={styles.eyebrow}>HABIT WORLD · FAIRY HOME</span><h2>妖精の部屋</h2><p>小さな一歩が、この世界を育てていく。</p></div></header>
     {!panel && errorBox}
-    <div className={styles.scene}>
+    <div className={styles.scene} data-time={nightBackground ? "night" : "day"}>
       <div className={styles.fairyArea}>
         <div className={styles.statusCard}>
           <div className={styles.nameRow}><h3>{fairy.name || "あなたの妖精"}</h3><button type="button" onClick={() => { setNewName(fairy.name ?? ""); setPanel("name"); }} aria-label="妖精の名前を変更">✎</button></div>
