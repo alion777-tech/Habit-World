@@ -4,12 +4,14 @@ import FairyChamber from "./FairyChamber";
 import { advanceRoom, createRoom, departAdventure, recoverFromHabit } from "@/lib/fairyRoomModel";
 import {tradeRoom,type TradeAction} from '@/lib/shopModel';
 
-export default function FairyChamberPreview({ embedded = false, isDarkMode = false }: { embedded?: boolean; isDarkMode?: boolean }) {
+export default function FairyChamberPreview({ embedded = false, isDarkMode = false, previewTime }: { embedded?: boolean; isDarkMode?: boolean; previewTime?: string | null }) {
   const [initial] = useState(()=>createRoom(Date.now(), "2026-09-12"));
   const current = useRef(initial);
   const [room, setRoom] = useState(initial);
   const [name, setName] = useState("ミルフィ");
   const [mobile, setMobile] = useState(false);
+  const [localPreviewTime, setLocalPreviewTime] = useState<string | null>(null);
+  const backgroundTime = embedded ? previewTime : localPreviewTime;
   const sync = useCallback(async (level: number, areaId?: string) => {
     let next = advanceRoom(current.current, Date.now(), level);
     if (areaId) next = departAdventure(next, Date.now(), areaId, 0.5);
@@ -20,6 +22,8 @@ export default function FairyChamberPreview({ embedded = false, isDarkMode = fal
     <div style={{ maxWidth: 1050, margin: "0 auto 16px", color: isDarkMode ? "#f3f4f6" : "#23382b", display: "flex", flexWrap: "wrap", gap: 12 }}>
       <p style={{ width: "100%" }}>お試しの妖精の部屋 · テストモード専用です。ここでの操作はアカウントに保存されず、実際のポイントや妖精には影響しません。</p>
       {!embedded && <button onClick={() => setMobile(value => !value)}>表示幅を切り替え</button>}
+      {!embedded && <label>背景確認時刻（日本時間） <input type="time" value={localPreviewTime ?? ""} onInput={event => setLocalPreviewTime(event.currentTarget.value || null)} /></label>}
+      {!embedded && <button onClick={() => setLocalPreviewTime(null)}>現在時刻に戻す</button>}
       <button onClick={() => { const next = { ...createRoom(Date.now(), "2026-09-12"), health: 73 }; current.current = next; setRoom(next); }}>体力73</button>
       <button onClick={() => { const next = { ...createRoom(Date.now(), "2026-09-12"), health: 0, sleeping: true }; current.current = next; setRoom(next); }}>冬眠</button>
       <button onClick={() => { const next = recoverFromHabit(current.current, Date.now(), "2026-09-12", String(Date.now())); current.current = next; setRoom(next); }}>習慣で回復</button>
@@ -27,7 +31,7 @@ export default function FairyChamberPreview({ embedded = false, isDarkMode = fal
       <button onClick={() => { if (!current.current.adventure) return; const next = advanceRoom({ ...current.current, adventure: { ...current.current.adventure, returnsAt: Date.now() - 1 } }, Date.now()); current.current = next; setRoom(next); }}>冒険をすぐ帰還させる</button>
     </div>
     <div style={{ maxWidth: mobile ? 390 : 1050, margin: "auto" }}>
-      <FairyChamber uid="preview" fairy={{ status: "ready", name, appearance: "basic", eggReceivedAt: "2026-09-06", bornAt: "2026-09-12" }} room={room} totalPoints={1250} loginDays={128} onSync={sync} onTrade={trade} onName={async value => setName(value)} />
+      <FairyChamber uid="preview" fairy={{ status: "ready", name, appearance: "basic", eggReceivedAt: "2026-09-06", bornAt: "2026-09-12" }} room={room} totalPoints={1250} loginDays={128} onSync={sync} onTrade={trade} onName={async value => setName(value)} previewTime={backgroundTime} />
     </div>
   </section>;
 }

@@ -43,9 +43,10 @@ type Props = {
   onSync?: (level: number, areaId?: string) => Promise<FairyRoomState>;
   onName?: (name: string) => Promise<void>;
   onTrade?: (action:TradeAction)=>Promise<FairyRoomState>;
+  previewTime?: string | null;
 };
 
-export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLevel = 1, loginDays, onSync, onName, onTrade }: Props) {
+export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLevel = 1, loginDays, onSync, onName, onTrade, previewTime }: Props) {
   const [atelier, setAtelier] = useState<'closet' | 'shops' | null>(null);
   const wardrobe=useWardrobe(uid);
   const [saved, setSaved] = useState(room);
@@ -113,6 +114,8 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLe
   }, [panel]);
   const title = panel === "name" ? "妖精の名前" : MENU.find(item => item.id === panel)?.title;
   const status = trip ? "冒険中" : sleeping ? "冬眠中" : health < 40 ? "ひとやすみ" : "元気に過ごしています";
+  const previewHour = previewTime && /^([01]\d|2[0-3]):[0-5]\d$/.test(previewTime) ? Number(previewTime.slice(0, 2)) : null;
+  const showingNightBackground = previewHour === null ? nightBackground : previewHour >= 19 || previewHour < 5;
   const talk = () => {
     const next = (lastLine.current + 1 + Math.floor(Math.random() * (ROOM_LINES.length - 1))) % ROOM_LINES.length;
     lastLine.current = next;
@@ -123,7 +126,7 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLe
   return <section className={styles.root} aria-label="妖精の部屋">
     <header className={styles.header}><div><span className={styles.eyebrow}>HABIT WORLD · FAIRY HOME</span><h2>妖精の部屋</h2><p>小さな一歩が、この世界を育てていく。</p></div></header>
     {!panel && errorBox}
-    <div className={styles.scene} data-time={nightBackground ? "night" : "day"}>
+    <div className={styles.scene} data-time={showingNightBackground ? "night" : "day"}>
       <div className={styles.fairyArea}>
         <div className={styles.statusCard}>
           <div className={styles.nameRow}><h3>{fairy.name || "あなたの妖精"}</h3><button type="button" onClick={() => { setNewName(fairy.name ?? ""); setPanel("name"); }} aria-label="妖精の名前を変更">✎</button></div>

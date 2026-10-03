@@ -135,6 +135,8 @@ export default function Home() {
   const loginStatusRef = useRef<{ uid: string; lastLoginAt: UserProfile["lastLoginAt"] } | null>(null);
   const testAccess = useTestAccess();
   const canPreviewFairyRoom = !!uid && !isAnonymous && testAccess.uid === uid && !testAccess.loading && !!testAccess.label && testAccess.enabled;
+  const [roomPreviewTime, setRoomPreviewTime] = useState<string | null>(null);
+  useEffect(() => { if (!canPreviewFairyRoom) setRoomPreviewTime(null); }, [canPreviewFairyRoom, uid]);
   const habitDate = habitTestDate(todayStr, uid, testAccess);
   const [testDateBusy, setTestDateBusy] = useState(false);
   const [habitBusy, setHabitBusy] = useState(false);
@@ -716,7 +718,8 @@ export default function Home() {
         {fairyError && <p role="alert">{fairyError}<button onClick={() => setFairyRetry(v => v + 1)}>再試行</button></p>}
         <details className="app-menu"><summary><span>☰ {locale === "ja" ? "メニュー" : "Menu"}</span><time className="menu-today" dateTime={todayStr} suppressHydrationWarning>{locale === "ja" ? `${todayStr.slice(0, 4)}年${Number(todayStr.slice(5, 7))}月${Number(todayStr.slice(8, 10))}日` : todayStr}</time></summary>
         <div data-opening="login"><AuthBox isDarkMode={isDarkMode} /></div>
-        <TestAdminControls locale={locale} access={testAccess} disabled={habitBusy || testDateBusy} onBusyChange={setTestDateBusy} />
+        <TestAdminControls locale={locale} access={testAccess} disabled={habitBusy || testDateBusy} onBusyChange={setTestDateBusy}
+          roomPreviewTime={roomPreviewTime} onRoomPreviewTimeChange={setRoomPreviewTime} />
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 12 }}>
         <button onClick={() => window.dispatchEvent(new Event("habit-world-replay-opening"))} style={{ padding: "10px 14px", border: "1px solid #94a3b8", borderRadius: 8, cursor: "pointer" }}>オープニングをもう一度見る</button>
           <button type="button" onClick={toggleDarkMode} aria-pressed={isDarkMode} aria-label={locale === "ja" ? "ダークモード" : "Dark mode"} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #94a3b8", cursor: "pointer", fontSize: 13 }}>
@@ -996,8 +999,8 @@ export default function Home() {
         {view === "fairyRoom" && (isLoading ? <p role="status">お部屋を準備しています…</p> : <>
           {canPreviewFairyRoom && profile.uid === uid && profile.fairy?.status === "ready" && <button type="button" onClick={() => setTryFairyRoom(value => !value)} style={{ padding: "10px 14px", marginBottom: 12, border: "1px solid #94a3b8", borderRadius: 10, cursor: "pointer" }}>{tryFairyRoom ? "自分の妖精の部屋に戻る" : "サンプルの妖精で試す"}</button>}
           {!(canPreviewFairyRoom && tryFairyRoom) && uid && !isAnonymous && profile.uid === uid && profile.fairy?.status === "ready"
-            ? <FairyChamber key={`room-${uid}`} uid={uid} fairy={profile.fairy} room={profile.fairyRoom ? { ...profile.fairyRoom, gold } : undefined} totalPoints={totalPoint} attainedLevel={level} loginDays={profile.stats?.loginDays ?? 0} />
-            : canPreviewFairyRoom ? <FairyChamberPreview key={`trial-${uid}`} embedded isDarkMode={isDarkMode} />
+            ? <FairyChamber key={`room-${uid}`} uid={uid} fairy={profile.fairy} room={profile.fairyRoom ? { ...profile.fairyRoom, gold } : undefined} totalPoints={totalPoint} attainedLevel={level} loginDays={profile.stats?.loginDays ?? 0} previewTime={canPreviewFairyRoom ? roomPreviewTime : null} />
+            : canPreviewFairyRoom ? <FairyChamberPreview key={`trial-${uid}`} embedded isDarkMode={isDarkMode} previewTime={roomPreviewTime} />
             : <section aria-label="妖精の部屋（未解放）" style={{ padding: 24, textAlign: "center" }}>
                 <div style={{ fontSize: 48 }} aria-hidden="true">🥚</div>
                 <h2>妖精の部屋はまだ解放されていません</h2>
