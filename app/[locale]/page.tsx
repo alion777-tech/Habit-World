@@ -461,9 +461,13 @@ export default function Home() {
   };
 
   const handleToggleHabit = async (habitId: string, date = activeHabitDate) => {
-    if (habitUnavailable || habitLock.current || auth.currentUser?.uid !== (uid ?? undefined)) return;
+    if (habitUnavailable || habitLock.current) return;
     const h = habits.find(h => h.id === habitId);
     if (!h) return;
+    const offline = () => !!uid && typeof navigator !== "undefined" && navigator.onLine === false;
+    const offlineMessage = "通信できないため、習慣を保存できません。オンラインに戻して再試行してください。";
+    if (offline()) { setHabitError(offlineMessage); return; }
+    if (auth.currentUser?.uid !== (uid ?? undefined)) return;
     habitLock.current = true; setHabitBusy(true); setHabitError("");
     try {
       // Presentation only: never pass this provisional history to persistence or rewards.
@@ -492,7 +496,10 @@ export default function Home() {
       if (result.alertMessage) alert(result.alertMessage);
     } catch (error) {
       if (auth.currentUser?.uid !== (uid ?? undefined)) return;
-      setHabitError(error instanceof Error ? error.message : "保存できませんでした。再試行してください。");
+      const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : "";
+      const connectionFailed = offline() || code === "unavailable" || code.endsWith("/unavailable")
+        || code === "deadline-exceeded" || code === "auth/network-request-failed";
+      setHabitError(connectionFailed ? offlineMessage : error instanceof Error ? error.message : "保存できませんでした。再試行してください。");
     } finally { setPendingHabit(null); habitLock.current = false; setHabitBusy(false); }
   };
 

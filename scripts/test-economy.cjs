@@ -36,11 +36,13 @@ const api = {
     const pending = []; let wrote = false;
     const tx = { get: async ref => { assert.equal(wrote, false, 'all reads precede writes'); reads.set(ref, JSON.stringify(docs.get(ref))); return snap(ref); },
       set: (ref, patch) => { wrote = true; pending.push([ref, patch]); },
-      update: (ref, patch) => { wrote = true; pending.push([ref, patch]); } };
+      update: (ref, patch) => { wrote = true; pending.push([ref, patch]); },
+      delete: ref => { wrote = true; pending.push([ref, null]); } };
     const result = await fn(tx);
     if (fail) throw Error('simulated failed commit');
     if ([...reads].some(([ref,value])=>JSON.stringify(docs.get(ref))!==value)) { retries++; continue; }
     for (const [ref, patch] of pending) {
+      if (patch === null) { docs.delete(ref); continue; }
       const next = { ...docs.get(ref) };
       for (const [key, value] of Object.entries(patch)) {
         if (key === "fairyRoom.coins" && value?.deleteField) { next.fairyRoom = { ...next.fairyRoom }; delete next.fairyRoom.coins; }

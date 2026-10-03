@@ -23,7 +23,7 @@ const compile = text => ts.transpileModule(text,{compilerOptions:{module:ts.Modu
   for(const success of [true,false]) {
     const wait=deferred(), paint=deferred();let calculations=0;let pending=null, busy=false, error='', canonical=[{id:'h',pointHistory:[]}];
     const fields={point:1,pointHistory:[{date:'2026-09-27',point:1}]};
-    const context={exports:{},habitUnavailable:false,habitLock:{current:false},auth:{currentUser:{uid:'me'}},uid:'me',habits:canonical,activeHabitDate:'2026-09-27',habitDate:{today:'2026-09-27',yesterday:'2026-09-26'},profile:{stats:{}},totalPoint:0,level:1,
+    const context={exports:{},habitUnavailable:false,habitLock:{current:false},navigator:{onLine:true},auth:{currentUser:{uid:'me'}},uid:'me',habits:canonical,activeHabitDate:'2026-09-27',habitDate:{today:'2026-09-27',yesterday:'2026-09-26'},profile:{stats:{}},totalPoint:0,level:1,
       setHabitBusy:v=>busy=v,setHabitError:v=>error=v,setPendingHabit:v=>pending=v,setHabits:fn=>canonical=fn(canonical),afterPaint:()=>paint.promise,setHabitCompletion:()=>{calculations++;return wait.promise.then(()=>({kind:'check',fields,pointDelta:1}));},announceFairy(){},saveUserProfile:async()=>{},setProfile(){},alert(){}};
     vm.runInNewContext(compile(handler+'\nexports.toggle=handleToggleHabit;'),context);
     const operation=context.exports.toggle('h');
@@ -34,11 +34,17 @@ const compile = text => ts.transpileModule(text,{compilerOptions:{module:ts.Modu
     assert.equal(calculations,1);
     assert.equal(canonical[0].pointHistory.length,0,'unconfirmed result cannot earn rewards');
     assert.equal(busy,true);
-    if(success)wait.resolve();else wait.reject(new Error('offline'));
+    if(success)wait.resolve();else wait.reject(Object.assign(new Error('Firestore unavailable'),{code:'unavailable'}));
     await operation;
     assert.equal(pending,null);assert.equal(busy,false);
     assert.equal(canonical[0].pointHistory.length,success?1:0);
-    assert.equal(!!error,!success);
+    assert.equal(error,success?'':'通信できないため、習慣を保存できません。オンラインに戻して再試行してください。');
+    context.navigator.onLine=false;
+    await context.exports.toggle('h');
+    assert.equal(calculations,1,'offline clicks never start reward calculation');
+    assert.equal(pending,null,'offline clicks never confirm or preview completion');
+    assert.equal(canonical[0].pointHistory.length,success?1:0);
+    assert.equal(error,'通信できないため、習慣を保存できません。オンラインに戻して再試行してください。');
   }
   // Render the real ToDo component with a small hooks harness.
   const values=[];let cursor=0, wait=deferred(),calls=0;
