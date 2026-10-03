@@ -16,11 +16,12 @@ function harness(reduced = false) {
   const element = { offsetWidth: 64, offsetHeight: 96, style: {}, dataset: {}, firstElementChild: { style: {} } };
   const media = { matches: reduced, ...target('media:') };
   const navigation = { top: 536, height: 64 };
-  const doc = { hidden: false, querySelector: () => ({ getBoundingClientRect: () => navigation }), ...target('doc:') };
+  const doc = { body: {}, hidden: false, querySelector: () => ({ getBoundingClientRect: () => navigation }), ...target('doc:') };
   const win = { innerWidth: 800, innerHeight: 600, matchMedia: () => media, ...target('win:') };
   let effect, cleanup, clock = 0, id = 0, choice = 0.2;
   const frames = new Map();
   let refCount = 0;
+  let portalHost;
   const stateValues = [];
   const jsx = (type, props) => ({ type, props });
   const context = {
@@ -28,7 +29,7 @@ function harness(reduced = false) {
     Math: Object.assign(Object.create(Math), { random: () => choice }),
     requestAnimationFrame: (fn) => { frames.set(++id, fn); return id; },
     cancelAnimationFrame: (key) => frames.delete(key),
-    require: (name) => name === 'react' ? {
+    require: (name) => name === 'react-dom' ? { createPortal: (children, host) => { portalHost = host; return children; } } : name === 'react' ? {
       useRef: (initial) => ({ current: refCount++ === 0 ? element : initial }),
       useState: (initial) => {
         const index = stateValues.length;
@@ -42,10 +43,11 @@ function harness(reduced = false) {
   vm.runInNewContext(code, context);
   let roomOpened = false;
   const tree = context.exports.default({ onOpenRoom: () => { roomOpened = true; } });
+  assert.equal(portalHost, doc.body, 'fairy overlay escapes the blurred app panel');
   tree.props.children[0].props.children[1].props.onClick();
   assert.ok(roomOpened, "room button opens fairy room");
   cleanup = effect();
-  const talk = tree.props.children[1].props.children.props;
+  const talk = tree.props.children[1].props.children[0].props.children.props;
   talk.onClick({detail:1});
   assert.equal(stateValues[1],1,'ordinary PC click works without pointerdown');
   talk.onPointerDown({isPrimary:true,button:0});

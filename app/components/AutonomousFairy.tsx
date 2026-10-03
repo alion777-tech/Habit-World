@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocale } from "next-intl";
 import styles from "./AutonomousFairy.module.css";
 import FairySpeech, { type FairyContext } from "./FairySpeech";
@@ -22,6 +23,9 @@ export default function AutonomousFairy({ context, uid, onOpenRoom }: { context?
   const japanese = useLocale().startsWith("ja");
   const [speechRequest, setSpeechRequest] = useState(0);
   const pointerSpoke = useRef(false);
+  // The blurred app panel is a containing block for fixed children. Keep both
+  // the moving sprite and its speech bubble in viewport coordinates instead.
+  const overlayRoot = typeof document === "undefined" ? null : document.body;
 
   useEffect(() => {
     const element = sprite.current;
@@ -182,6 +186,7 @@ export default function AutonomousFairy({ context, uid, onOpenRoom }: { context?
           {japanese ? "妖精の部屋" : "Fairy room"}
         </button>}
       </div>
+      {overlayRoot && createPortal(<>
       <div className={styles.layer}>
         <div ref={sprite} className={styles.sprite} role="button" tabIndex={0}
           aria-label={japanese ? "妖精と話す" : "Talk to the fairy"}
@@ -200,6 +205,7 @@ export default function AutonomousFairy({ context, uid, onOpenRoom }: { context?
         </div>
       </div>
       <FairySpeech sprite={sprite} request={speechRequest} context={context} locale={japanese ? "ja" : "en"} />
+      </>, overlayRoot)}
     </>
   );
 }
