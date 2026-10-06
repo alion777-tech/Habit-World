@@ -39,17 +39,17 @@ export default function FairyKingRoom({ onLeave, draw, initialGreeting }: {
     : conversation.step === "word" ? `「${conversation.word.word}」`
     : conversation.response.reply;
   const title = conversation.step === "word" ? "今日のお言葉"
-    : conversation.step === "advice" ? conversation.topic.label : "妖精王とのひととき";
+    : conversation.step === "advice" ? conversation.topic.label : "精霊王とのひととき";
 
-  return <section className={styles.root} aria-label="妖精王の部屋">
+  return <section className={styles.root} aria-label="精霊王の部屋">
     <header className={styles.header}>
-      <div><span className={styles.eyebrow}>HABIT WORLD · FAIRY KING</span><h2>妖精王の部屋</h2><p>夢への道も、今日の迷いも。ここでひと息。</p></div>
+      <div><span className={styles.eyebrow}>HABIT WORLD · SPIRIT KING</span><h2>精霊王の部屋</h2><p>夢への道も、今日の迷いも。ここでひと息。</p></div>
       <button type="button" className={styles.leave} onClick={onLeave}>妖精の部屋へ戻る</button>
     </header>
     <div className={styles.scene}>
       <div className={styles.conversation}>
         <div className={styles.dialogue}>
-          <span className={styles.speaker}>✧ 妖精王</span>
+          <span className={styles.speaker}>✧ 精霊王</span>
           <h3 ref={heading} tabIndex={-1} className={styles.title}>{title}</h3>
           <div aria-live="polite" aria-atomic="true" className={styles.message}>
             <p className={conversation.step === "word" ? styles.word : styles.line}>{line}</p>
@@ -59,32 +59,32 @@ export default function FairyKingRoom({ onLeave, draw, initialGreeting }: {
             </div>}
           </div>
         </div>
-        <div className={styles.choices} role="group" aria-label="妖精王への返事">
+        <div className={styles.choices} role="group" aria-label="精霊王への返事">
           <p className={styles.choiceHint}>あなたの言葉を選んでください</p>
           {conversation.step === "welcome" && <>
-            <Choice onClick={word}>妖精王に今日のお言葉をいただく</Choice>
-            <Choice onClick={topics}>妖精王に悩みを聞いてもらう</Choice>
+            <Choice onClick={word}>精霊王に今日のお言葉をいただく</Choice>
+            <Choice onClick={topics}>精霊王に悩みを聞いてもらう</Choice>
           </>}
           {conversation.step === "topics" && <>
             {fairyKingDialogue.fairyKingAdvice.map(topic => <Choice key={topic.id} onClick={() => advise(topic)}>{topic.choice}</Choice>)}
-            <Choice onClick={greet} quiet>妖精王の部屋に戻る</Choice>
+            <Choice onClick={greet} quiet>精霊王の部屋に戻る</Choice>
           </>}
           {conversation.step === "word" && <>
             <Choice onClick={word}>別のお言葉をいただく</Choice>
             <Choice onClick={topics}>悩みを聞いてもらう</Choice>
-            <Choice onClick={greet} quiet>妖精王の部屋に戻る</Choice>
+            <Choice onClick={greet} quiet>精霊王の部屋に戻る</Choice>
           </>}
           {conversation.step === "advice" && <>
             <Choice onClick={() => advise(conversation.topic)}>この悩みをもう少し相談する</Choice>
             <Choice onClick={topics}>もう一度相談する</Choice>
             <Choice onClick={word}>今日のお言葉をいただく</Choice>
-            <Choice onClick={greet} quiet>妖精王の部屋に戻る</Choice>
+            <Choice onClick={greet} quiet>精霊王の部屋に戻る</Choice>
           </>}
         </div>
       </div>
       <figure className={styles.portrait}>
-        <Image src="/opening/spirit.jpg" alt="光あふれる森で、優しく話を聞く妖精王" fill sizes="(max-width: 650px) 100vw, 45vw" priority />
-        <figcaption><span>FAIRY KING</span>おぬしの歩幅で、話してよいのじゃ。</figcaption>
+        <Image src="/opening/spirit.jpg" alt="光あふれる森で、優しく話を聞く精霊王" fill sizes="(max-width: 650px) 100vw, 45vw" priority />
+        <figcaption><span>SPIRIT KING</span>おぬしの歩幅で、話してよいのじゃ。</figcaption>
       </figure>
     </div>
     <footer className={styles.footer}>✧ 答えを急がず、次の一歩を一緒に探そう。</footer>

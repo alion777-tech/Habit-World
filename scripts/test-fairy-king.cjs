@@ -86,7 +86,7 @@ const click = label => {
   (button || plain).props.onClick();
 };
 assert.equal(render().filter(node => node.type === 'button').length, 3, 'two opening choices plus exit');
-click('妖精王に今日のお言葉をいただく');
+click('精霊王に今日のお言葉をいただく');
 assert.equal(states[0].step, 'word');
 assert.ok(render().some(node => node.type === 'p' && node.props.children === states[0].word.explanation));
 assert.ok(render().some(node => node.type === 'p' && node.props.children === states[0].word.action));
@@ -108,11 +108,11 @@ for (const topic of data.fairyKingAdvice) {
 const lastMotivation = history['advice:motivation'];
 click(data.fairyKingAdvice[0].choice);
 assert.notEqual(states[0].response.id, lastMotivation, 'other topics preserve history');
-click('妖精王の部屋に戻る');
+click('精霊王の部屋に戻る');
 assert.equal(states[0].step, 'welcome');
 const firstGreeting = states[0].greeting;
-click('妖精王に悩みを聞いてもらう');
-click('妖精王の部屋に戻る');
+click('精霊王に悩みを聞いてもらう');
+click('精霊王の部屋に戻る');
 assert.notEqual(states[0].greeting, firstGreeting);
 click('妖精の部屋へ戻る');
 assert.equal(left, 1);

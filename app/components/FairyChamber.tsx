@@ -26,7 +26,7 @@ const MENU = [
   { id: "ranking", icon: "♛", title: "妖精ランキング", detail: "総合ポイント・ログイン日数・冒険ポイント" },
   { id: "records", icon: "▤", title: "妖精と冒険の記録", detail: "ふたりの足あと" },
   { id: "shop", icon: "♜", title: "アイテムショップ", detail: "森の3つのお店を訪ねよう" },
-  { id: "council", icon: "✧", title: "妖精王の部屋", detail: "今日のお言葉と、やさしい相談のひととき" },
+  { id: "council", icon: "✧", title: "精霊王の部屋", detail: "今日のお言葉と、やさしい相談のひととき" },
   { id: "closet", icon: "♧", title: "クローゼット", detail: "アバタールームで着替える" },
   { id: "adventure", icon: "⌁", title: "冒険に出かける", detail: "森の奥へ、小さな旅を" },
 ] as const;

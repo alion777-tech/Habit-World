@@ -28,7 +28,7 @@
 | TODO-01 | タスク管理 | 日付・カテゴリ・メモ・サブタスク等 | 実装済み | TodoView、todoModel/Actions | addTodo、updateTodo | データはprivate |
 | TODO-02 | 完了報酬・繰返し | 初回5pt、次回1件生成 | 実装済み | todoModel/Actions | completionChanges、toggleTodo | 取消しても報酬維持 |
 | TODO-03 | リマインダー | 期限前の画面内表示 | 実装済み | todoModel、TodoView | reminderActive | 定刻プッシュは未実装 |
-| DREAM-01 | 夢達成 | 10秒長押し、最大5回、目標維持/削除 | 実装済み | 本体、DreamView | handleDreamAchieved | 妖精王進化はなし |
+| DREAM-01 | 夢達成 | 10秒長押し、最大5回、目標維持/削除 | 実装済み | 本体、DreamView | handleDreamAchieved | 精霊王進化はなし |
 | BUCKET-01 | 100のこと | 目標done30件でメニュー解放 | 実装済み | 本体、BucketListView、bucketListActions | isLocked、get/saveBucketList | ローカル移行対象外 |
 | FAIRY-01 | 卵受領 | fairy未作成ならegg | 実装済み | OpeningTutorial、fairyProgressActions | finish、receiveFairyEgg | 個数管理なし |
 | FAIRY-02 | 孵化 | eggかつ連続ログイン7以上、100pt | 実装済み | fairyProgressModel/Actions、FairyRoom | advanceFairyLogin、recordFairyLogin | 非匿名認証 |
@@ -47,7 +47,7 @@
 | FRIEND-03 | 旧申請・承認 | 関数とルールのみ | 一部実装 | friendActions.ts、firestore.rules | send/accept/rejectFriendRequest | 現行画面importなし |
 | RANK-01 | 妖精ランキング | 3指標の自分の値だけ | 一部実装 | FairyChamber | RANKINGS、ranking分岐 | 他人取得/順位なし |
 | KING-01 | 精霊王導入 | 12段階の固定案内 | 実装済み | openingDialogue、OpeningTutorial | openingDialogue、step、finish | AI会話ではない |
-| KING-02 | 精霊王相談所 | 準備中 | 未実装 | FairyChamber | council disabled | 台詞・処理なし |
+| KING-02 | 精霊王の部屋 | お言葉・5種類の相談 | 実装済み | FairyChamber、FairyKingRoom | council、fairyKingDialogue | お言葉15件・各相談10回答。JSONからランダム表示 |
 | TALK-01 | 共通会話 | 状況カテゴリ→履歴を除いて抽選 | 実装済み | data/fairy、dialogue.ts、FairySpeech | categories、selectDialogue | エリア別条件なし |
 | TALK-02 | 成功時会話 | 習慣・目標・夢の成功イベント | 実装済み | events.ts、本体、DreamView | announceFairy | ToDo/APは発信なし |
 | TALK-03 | 部屋会話 | 6文、直前添字を回避 | 実装済み | FairyChamber | ROOM_LINES、talk | 初回は最後の文を抽選しない |
@@ -172,7 +172,7 @@ app/lib/types/data/hooks/functions/src、認証・ルール・保存・言語・
 | [app/components/OpeningTutorial.tsx](<C:/dev/GitHub/Habit-World/app/components/OpeningTutorial.tsx:117>) | async function finish | 117 |
 | [app/components/OpeningTutorial.tsx](<C:/dev/GitHub/Habit-World/app/components/OpeningTutorial.tsx:96>) | }, 42) | 96 |
 | [app/components/FairyChamber.tsx](<C:/dev/GitHub/Habit-World/app/components/FairyChamber.tsx:22>) | id: "council" | 22 |
-| [app/(root)/world/world-prototype.tsx](<C:/dev/GitHub/Habit-World/app/(root)/world/world-prototype.tsx:104>) | いつか、妖精王へ | 104 |
+| [app/(root)/world/world-prototype.tsx](<C:/dev/GitHub/Habit-World/app/(root)/world/world-prototype.tsx:104>) | いつか、精霊王へ | 104 |
 | [data/fairy/ja.json](<C:/dev/GitHub/Habit-World/data/fairy/ja.json:2>) | "normal" | 2 |
 | [data/fairy/en.json](<C:/dev/GitHub/Habit-World/data/fairy/en.json:2>) | "normal" | 2 |
 | [lib/fairy/dialogue.ts](<C:/dev/GitHub/Habit-World/lib/fairy/dialogue.ts:19>) | export function categories | 19 |

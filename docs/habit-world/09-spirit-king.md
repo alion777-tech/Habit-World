@@ -2,9 +2,9 @@
 
 [目次](00-index.md) / [会話の編集](10-dialogue-system.md)
 
-精霊王はオープニングの案内役として実装済みです。妖精の部屋の入口は「妖精王の部屋」に変更され、お言葉と相談を会話形式で選べます。既存の spirit.jpg を使い、デスクトップでは右側、狭い画面では会話の上に妖精王を表示します。
+精霊王はオープニングの案内役として実装済みです。妖精の部屋の入口は「精霊王の部屋」に変更され、お言葉と相談を会話形式で選べます。既存の spirit.jpg を使い、デスクトップでは右側、狭い画面では会話の上に精霊王を表示します。
 
-会話データの追加方法と確認手順は [妖精王の部屋](fairy-king-room.md) を参照してください。
+会話データの追加方法と確認手順は [精霊王の部屋](fairy-king-room.md) を参照してください。
 
 ## オープニング
 
@@ -25,9 +25,9 @@
 | 保存 | 導入終了キー、旧卵キー、`profile.fairy` |
 | 手動編集可能 | text / signedInText。順番変更は配列。画像・配置はpublic/openingとopening.css |
 | 同時確認 | 本体onNavigate、ProfileView/DreamView/HabitView/AuthBoxのdata-opening、fairyProgressActions |
-| 妖精王の部屋 | `FairyChamber.tsx` のMENU内councilから `FairyKingRoom.tsx` を開く |
+| 精霊王の部屋 | `FairyChamber.tsx` のMENU内councilから `FairyKingRoom.tsx` を開く |
 
-`/world` 試作にある「夢が叶うと妖精王になる」は物語テキストです。本体で夢達成時に妖精を王へ進化させる処理や見た目変更は確認できません。「精霊王」と「妖精王」を同一の進化仕様としてまとめていません。
+`/world` 試作にある「夢が叶うと精霊王になる」は物語テキストです。本体で夢達成時に妖精を王へ進化させる処理や見た目変更は確認できません。呼称は精霊王に統一していますが、相談役の精霊王と、試作で描かれるリリの将来像は区別します。リリの進化機能は未実装です。
 
 ## コード参照（調査時点）
 
@@ -38,4 +38,4 @@
 | [app/components/OpeningTutorial.tsx](<C:/dev/GitHub/Habit-World/app/components/OpeningTutorial.tsx:117>) | async function finish | 117 |
 | [app/components/OpeningTutorial.tsx](<C:/dev/GitHub/Habit-World/app/components/OpeningTutorial.tsx:96>) | }, 42) | 96 |
 | [app/components/FairyChamber.tsx](<C:/dev/GitHub/Habit-World/app/components/FairyChamber.tsx:22>) | id: "council" | 22 |
-| [app/(root)/world/world-prototype.tsx](<C:/dev/GitHub/Habit-World/app/(root)/world/world-prototype.tsx:104>) | いつか、妖精王へ | 104 |
+| [app/(root)/world/world-prototype.tsx](<C:/dev/GitHub/Habit-World/app/(root)/world/world-prototype.tsx:104>) | いつか、精霊王へ | 104 |

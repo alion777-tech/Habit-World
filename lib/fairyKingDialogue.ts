@@ -17,7 +17,7 @@ export const fairyKingGreetings = dialogue.greetings.map((text, index) => ({ id:
 export function pickFairyKingEntry<T extends { id: string }>(
   entries: readonly T[], previousId?: string, random: () => number = Math.random,
 ): T {
-  if (!entries.length) throw new Error("妖精王の会話データがありません。");
+  if (!entries.length) throw new Error("精霊王の会話データがありません。");
   const candidates = entries.length > 1 ? entries.filter(entry => entry.id !== previousId) : entries;
   const index = Math.min(candidates.length - 1, Math.max(0, Math.floor(random() * candidates.length)));
   return candidates[index];

@@ -1,7 +1,7 @@
 // セリフだけを変更できます。tab / target は既存UIとの接続先です。
 export type OpeningStep = { id: string; text: string; signedInText?: string; tab?: "profile" | "dream" | "habit"; target?: string };
 export const openingDialogue: OpeningStep[] = [
-  { id: "welcome", text: "……よく、ここまで辿り着いたのじゃ。私はこの森を見守る精霊王。Habit Worldへようこそなのじゃ。" },
+  { id: "welcome", text: "……よく、ここまで辿り着いたのじゃ。私はこの森を見守る精霊王。Habit Worldへようこそ。" },
   { id: "purpose", text: "ここは、そなたの夢を叶える力を育てる場所。毎日の小さな一歩が、この世界にも命を灯していく。さあ、そなたのことを教えるのじゃ。" },
   { id: "login", tab: "profile", target: "login", text: "そのまま旅を始めることもできるが、未ログインの記録はこのブラウザーだけの保存なのじゃ。閲覧データの削除などで失われることもある。大切な歩みを守るため、光っている「Googleでログイン」からアカウントでの利用をおすすめするぞ。フレンド機能を使うには、自身のGoogleアカウントでログインする必要があるぞ。", signedInText: "アカウントでログインできておるな。そなたの歩みをアカウントに保存しながら、旅を続けられるぞ。フレンド機能も、自身のアカウントでログインしておるから利用できるぞ。ここでログイン状態を確認できる。それでは、そなたのことを教えるのじゃ。" },
   { id: "name", tab: "profile", target: "name", text: "まずは、そなたのお名前を教えてほしい。光っている名前の欄に入力するのじゃ。" },

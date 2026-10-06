@@ -17,7 +17,7 @@
 | `/world` 試作 | リリ・ナレーション。`world-prototype.tsx.chapters`、reaction、各JSX | 固定の物語、ミッション成功・タップの反応。本体と別 |
 | `/avatar` 試作 | `studio.tsx` の決定dialog内 | 固定「これから、一緒に歩いていこう。」 |
 | アイテム発見・エリア発見 | 共通JSONにitemEarned/placeDiscoveredあり | 定義のみ。現行UIの通知呼出しが見つからず一部実装 |
-| 妖精王の部屋 | `data/fairy-king-dialogue.json` の `fairyKingWords` / `fairyKingAdvice` | お言葉15件・5相談カテゴリー各10件。直前と同じ文章を避けてランダム表示 |
+| 精霊王の部屋 | `data/fairy-king-dialogue.json` の `fairyKingWords` / `fairyKingAdvice` | お言葉15件・5相談カテゴリー各10件。直前と同じ文章を避けてランダム表示 |
 
 共通妖精は本体でオープニング非表示・読み込み完了・プロフィール一致・fairy.status=ready・部屋以外の場合にマウントされます。`context` は当日の予定習慣数、完了数、直近の習慣連続日数等で、**現在エリアIDや現在タブIDは渡していません**。「湖限定のランダム台詞」を設定する既存のキーや分岐はありません。
 
