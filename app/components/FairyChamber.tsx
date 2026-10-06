@@ -11,6 +11,8 @@ import { nameFairy } from "@/lib/fairyProgressActions";
 import styles from "./FairyChamber.module.css";
 import { WardrobeStudio, AvatarFigure } from '@/app/(root)/avatar/wardrobe-studio';
 import { DEFAULT } from '@/app/(root)/avatar/wardrobe';
+import FairyKingRoom from "./FairyKingRoom";
+import { fairyKingGreetings, pickFairyKingEntry } from "@/lib/fairyKingDialogue";
 
 const ROOM_LINES = [
   "ここ、私のお部屋なんだよ！ 葉っぱのハンモック、お気に入りなんだ。",
@@ -24,7 +26,7 @@ const MENU = [
   { id: "ranking", icon: "♛", title: "妖精ランキング", detail: "総合ポイント・ログイン日数・冒険ポイント" },
   { id: "records", icon: "▤", title: "妖精と冒険の記録", detail: "ふたりの足あと" },
   { id: "shop", icon: "♜", title: "アイテムショップ", detail: "森の3つのお店を訪ねよう" },
-  { id: "council", icon: "✧", title: "精霊王の相談所", detail: "準備中" },
+  { id: "council", icon: "✧", title: "妖精王の部屋", detail: "今日のお言葉と、やさしい相談のひととき" },
   { id: "closet", icon: "♧", title: "クローゼット", detail: "アバタールームで着替える" },
   { id: "adventure", icon: "⌁", title: "冒険に出かける", detail: "森の奥へ、小さな旅を" },
 ] as const;
@@ -48,6 +50,10 @@ type Props = {
 
 export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLevel = 1, loginDays, onSync, onName, onTrade, previewTime }: Props) {
   const [atelier, setAtelier] = useState<'closet' | 'shops' | null>(null);
+  const [kingRoom, setKingRoom] = useState(false);
+  const [kingGreeting, setKingGreeting] = useState("");
+  const kingHistory = useRef<Record<string, string>>({});
+  const kingEntrance = useRef<HTMLButtonElement>(null);
   const wardrobe=useWardrobe(uid);
   const [saved, setSaved] = useState(room);
   const [now, setNow] = useState<number | null>(null);
@@ -122,7 +128,16 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLe
     setLine(ROOM_LINES[next]);
   };
   const errorBox = error && <div className={styles.error} role="alert">{error}<button type="button" disabled={busy} onClick={() => void sync()}>再接続する</button></div>;
+  const drawKingEntry = <T extends { id: string },>(pool: string, entries: readonly T[]): T => {
+    const entry = pickFairyKingEntry(entries, kingHistory.current[pool]);
+    kingHistory.current[pool] = entry.id;
+    return entry;
+  };
   if (atelier) return <WardrobeStudio key={uid} uid={uid} initialMode={atelier} room={source} onTrade={trade} onClose={() => setAtelier(null)} />;
+  if (kingRoom) return <FairyKingRoom draw={drawKingEntry} initialGreeting={kingGreeting} onLeave={() => {
+    setKingRoom(false);
+    requestAnimationFrame(() => kingEntrance.current?.focus({ preventScroll: true }));
+  }} />;
   return <section className={styles.root} aria-label="妖精の部屋">
     <header className={styles.header}><div><span className={styles.eyebrow}>HABIT WORLD · FAIRY HOME</span><h2>妖精の部屋</h2><p>小さな一歩が、この世界を育てていく。</p></div></header>
     {!panel && errorBox}
@@ -146,11 +161,14 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLe
       </div>
       <nav className={styles.menu} aria-label="妖精の部屋メニュー"><p className={styles.menuHeading}>このお部屋でできること</p>
         {MENU.map(item => {
-          const disabled = item.id === "council" || (item.id === "closet" && !closetUnlocked);
-          return <button type="button" key={item.id} className={`${styles.plank} ${item.id === "adventure" ? styles.adventurePlank : ""}`} disabled={disabled} onClick={() => {
+          const disabled = item.id === "closet" && !closetUnlocked;
+          return <button type="button" key={item.id} ref={item.id === "council" ? kingEntrance : undefined} className={`${styles.plank} ${item.id === "adventure" ? styles.adventurePlank : ""}`} disabled={disabled} onClick={() => {
             if (item.id === "closet") { setAtelier('closet'); return; }
             if (item.id === "shop") { setAtelier('shops'); return; }
-            if (item.id === "council") return;
+            if (item.id === "council") {
+              const greeting = drawKingEntry("greeting", fairyKingGreetings);
+              setKingGreeting(greeting.text); setKingRoom(true); return;
+            }
             if (item.id === "ranking") setRanking("growth");
             setPanel(item.id);
           }}><span className={styles.menuIcon} aria-hidden="true">{item.icon}</span><span><strong>{item.title}</strong><small>{item.id === "closet" && !closetUnlocked ? "ショップでクローゼットを購入して解放" : item.detail}</small></span><span className={styles.arrow} aria-hidden="true">{disabled ? "—" : "›"}</span></button>;

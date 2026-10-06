@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:todo": "node scripts/test-todo.cjs",
+    "test:fairy-king": "node scripts/test-fairy-king.cjs",
     "test:test-mode": "node scripts/test-test-mode.cjs",
     "test:test-rules": "firebase emulators:exec --project demo-habit-world-tests --config firebase.test.json --only firestore \"node scripts/test-test-mode-rules.cjs\""
   },

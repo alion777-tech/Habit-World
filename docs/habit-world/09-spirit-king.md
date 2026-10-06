@@ -2,7 +2,9 @@
 
 [目次](00-index.md) / [会話の編集](10-dialogue-system.md)
 
-精霊王はオープニングの案内役として実装済みです。部屋の「精霊王の相談所」は準備中で、会話選択・相談判定・報酬・AI応答は未実装です。
+精霊王はオープニングの案内役として実装済みです。妖精の部屋の入口は「妖精王の部屋」に変更され、お言葉と相談を会話形式で選べます。既存の spirit.jpg を使い、デスクトップでは右側、狭い画面では会話の上に妖精王を表示します。
+
+会話データの追加方法と確認手順は [妖精王の部屋](fairy-king-room.md) を参照してください。
 
 ## オープニング
 
@@ -23,7 +25,7 @@
 | 保存 | 導入終了キー、旧卵キー、`profile.fairy` |
 | 手動編集可能 | text / signedInText。順番変更は配列。画像・配置はpublic/openingとopening.css |
 | 同時確認 | 本体onNavigate、ProfileView/DreamView/HabitView/AuthBoxのdata-opening、fairyProgressActions |
-| 相談所 | `FairyChamber.tsx` のMENU内councilとdisabled分岐。文言だけで利用可能にはならない |
+| 妖精王の部屋 | `FairyChamber.tsx` のMENU内councilから `FairyKingRoom.tsx` を開く |
 
 `/world` 試作にある「夢が叶うと妖精王になる」は物語テキストです。本体で夢達成時に妖精を王へ進化させる処理や見た目変更は確認できません。「精霊王」と「妖精王」を同一の進化仕様としてまとめていません。
 

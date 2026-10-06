@@ -3,7 +3,7 @@ const fs=require('fs'),path=require('path'),webpack=require('webpack'),http=requ
 const config=require('./sync-shop-config.cjs');config.sync();
 const root=path.resolve(__dirname,'..'),dir=path.join(root,'output/avatar-preview');fs.mkdirSync(dir,{recursive:true});
 fs.writeFileSync(path.join(dir,'loader.cjs'),`module.exports=function(source){return require('typescript').transpileModule(source,{compilerOptions:{jsx:4,module:99,target:7,esModuleInterop:true}}).outputText}`);
-fs.writeFileSync(path.join(dir,'image.js'),`const React=require('react');module.exports=function({unoptimized,priority,...props}){return React.createElement('img',props)}`);
+fs.writeFileSync(path.join(dir,'image.js'),`const React=require('react');module.exports=function({unoptimized,priority,fill,...props}){return React.createElement('img',props)}`);
 fs.writeFileSync(path.join(dir,'link.js'),`const React=require('react');module.exports=function(props){return React.createElement('a',props)}`);
 fs.writeFileSync(path.join(dir,'access.js'),`exports.useTestAccess=()=>{throw Error('Authentication is unavailable in this isolated UI fixture')}`);
 fs.writeFileSync(path.join(dir,'actions.js'),`const fail=()=>{throw Error('Real account actions are unavailable in the preview')};exports.syncFairyRoom=fail;exports.tradeFairyRoom=fail;exports.nameFairy=fail;`);
@@ -17,7 +17,7 @@ if(process.argv.includes('--build-only'))compiler.run((err,stats)=>{if(report(er
 else{
  compiler.watch({},report);config.watch();
  http.createServer((req,res)=>{
-  const url=new URL(req.url,'http://127.0.0.1');const isAsset=['/avatar/','/world/'].some(prefix=>url.pathname.startsWith(prefix));
+  const url=new URL(req.url,'http://127.0.0.1');const isAsset=['/avatar/','/world/','/opening/'].some(prefix=>url.pathname.startsWith(prefix));
   const file=isAsset?path.join(root,'public',url.pathname):path.join(dir,url.pathname==='/'?'index.html':url.pathname);
   if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404);res.end();return;}
   res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type',({'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp'})[path.extname(file)]||'application/octet-stream');fs.createReadStream(file).pipe(res);
