@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useState} from 'react';
+import {useEffect,useState,type ReactNode} from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {useTestAccess} from '@/hooks/useTestAccess';
@@ -8,7 +8,7 @@ import {CommerceProvider,useCommerce,type CommerceProps} from './commerce';
 import {ShopCounter} from './shop-counter';
 import {PRODUCTS} from '../../../lib/shopCatalog';
 import {syncFairyRoom,tradeFairyRoom} from '@/lib/fairyRoomActions';
-import type {FairyRoomState} from '../../../lib/fairyRoomModel';
+import {advanceRoom,type FairyRoomState} from '../../../lib/fairyRoomModel';
 import s from './wardrobe.module.css';
 import {BaseLayer} from './base-layer';
 export function AvatarFigure({avatar,adjustments={}}:{avatar:Appearance;adjustments?:Adjustments}){
@@ -46,7 +46,16 @@ function AccountWardrobe({uid,entry}:{uid:string;entry:'closet'|'shops'}){
  return <WardrobeStudio uid={uid} initialMode={entry} room={room} onTrade={async action=>{const next=await tradeFairyRoom(uid,action);setRoom(next);return next;}}/>;
 }
 export function WardrobeStudio({uid,initialMode='closet',onClose,room,onTrade}:{uid:string;initialMode?:'closet'|'shops';onClose?:()=>void}&CommerceProps){
- return <CommerceProvider uid={uid} room={room} onTrade={onTrade}>{initialMode==='shops'?<ShopDirectory uid={uid} onClose={onClose}/>:<DressingRoom uid={uid} entry="closet" onClose={onClose}/>}</CommerceProvider>;
+ return <CommerceProvider uid={uid} room={room} onTrade={onTrade}><StudioAvailability onClose={onClose}>{initialMode==='shops'?<ShopDirectory uid={uid} onClose={onClose}/>:<DressingRoom uid={uid} entry="closet" onClose={onClose}/>}</StudioAvailability></CommerceProvider>;
+}
+function StudioAvailability({children,onClose}:{children:ReactNode;onClose?:()=>void}){
+ const {room,ready}=useCommerce();
+ const [now,setNow]=useState<number|null>(null);
+ useEffect(()=>{const refresh=()=>setNow(Date.now());refresh();const timer=window.setInterval(refresh,60000);window.addEventListener('focus',refresh);return()=>{window.clearInterval(timer);window.removeEventListener('focus',refresh);};},[]);
+ if(!ready)return <p role="status">妖精の状態を確認しています…</p>;
+ const projected=advanceRoom(room,now??room.updatedAt);
+ if(projected.sleeping||projected.adventure)return <section className={s.locked} role="status"><Back onClick={onClose}/><p><span className={s.activityBadge} data-state={projected.sleeping?'sleeping':'adventure'}>{projected.sleeping?'💤冬眠中':'冒険中'}</span></p><p>ショップ・クローゼット・アイテム使用は、妖精が戻ってから利用できます。</p></section>;
+ return children;
 }
 function Back({onClick,label='妖精の部屋へ戻る'}:{onClick?:()=>void;label?:string}){return onClick?<button className={s.back} onClick={onClick}>← {label}</button>:<Link className={s.back} href="/ja">← ホームへ戻る</Link>;}
 export function ShopDirectory({uid,onClose,initialShop=null}:{uid:string;onClose?:()=>void;initialShop?:Shop|null}){
@@ -90,7 +99,7 @@ function DressingRoomUnlocked({uid,entry,onClose}:{uid:string;entry:'closet'|'fi
  const [category,setCategory]=useState<Category>('outfit'),[ready,setReady]=useState(false),[notice,setNotice]=useState(''),[night,setNight]=useState(false);
  useEffect(()=>{try{const value=loadSaved(uid);setWardrobe(value);setAvatar(value.equipped);setAdjustments(value.adjustments);setReady(true);}catch{setNotice('保存データを読み込めませんでした。ブラウザーの保存設定を確認してください。');}},[uid]);
  function latest(){return grantPurchases(loadSaved(uid),commerce.room.purchases);}
- function persist(next:Wardrobe){writeSaved(uid,next);setWardrobe(next);}
+ function persist(next:Wardrobe){const state=advanceRoom(commerce.room,Date.now());if(state.sleeping||state.adventure)throw Error(state.sleeping?'冬眠中はクローゼットを利用できません。':'冒険中はクローゼットを利用できません。');writeSaved(uid,next);setWardrobe(next);}
  async function purchase(){if(entry!=='fitting')return;try{const item=ITEMS.find(i=>i.category===category&&i.id===avatar[category]),product=item&&offered(item);if(!product)throw Error('商品が見つかりません。');const result=await commerce.submit({type:'buy',shop:'fairy',productId:product.id});persist(grantPurchases(latest(),result.purchases));setNotice('購入しました。クローゼットに追加されています。');}catch(e){setNotice(e instanceof Error?e.message:'購入を保存できませんでした。');}}
  function decide(){try{const current=latest();const changed=Object.fromEntries(Object.entries(adjustments).filter(([key,y])=>y!==(wardrobe.adjustments[key]??(key.startsWith('scale:')?100:0))));const next=saveAppearance({...current,adjustments:{...current.adjustments,...changed}},avatar);persist(next);setAdjustments(next.adjustments);setAvatar(next.equipped);setNotice('この姿と調整した位置・大きさを保存しました。');}catch(e){setNotice(e instanceof Error?e.message:'保存できませんでした。');}}
  const adjustable=(category!=='base'&&!(category==='accessory'&&avatar.accessory==='none'))?category as AdjustableCategory:null;

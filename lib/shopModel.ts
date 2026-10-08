@@ -1,6 +1,6 @@
 import {migratePreviewGold} from './economyModel';
 import {PRODUCTS,BUYBACK,MATERIALS,type StoreId} from './shopCatalog';
-import {advanceRoom,type FairyRoomState} from './fairyRoomModel';
+import {advanceRoom,reconcileRoomSleep,type FairyRoomState} from './fairyRoomModel';
 export type TradeInput={type:'buy';shop:StoreId;productId:string}|{type:'sell';shop:StoreId;materialId:string;quantity:number}|{type:'use'|'equip';productId:string};
 export type TradeAction=TradeInput&{requestId:string};
 export function tradeRoom(source:FairyRoomState,action:TradeAction,now:number):FairyRoomState{
@@ -8,6 +8,8 @@ export function tradeRoom(source:FairyRoomState,action:TradeAction,now:number):F
  if(!action.requestId||action.requestId.length>100)throw Error('取引番号が不正です。');
  if(source.tradeIds?.includes(action.requestId))return source;
  const state=advanceRoom(source,now);let message='';
+ if(state.sleeping)throw Error('冬眠中はショップ・クローゼット・アイテムを利用できません。');
+ if(state.adventure)throw Error('冒険中はショップ・クローゼット・アイテムを利用できません。帰還をお待ちください。');
  const inventory={...state.inventory},materials={...state.materials},purchases=[...(state.purchases??[])];let gold=state.gold??0;
  if(!Number.isSafeInteger(gold)||gold<0)throw Error('ゴールド残高を確認できません。');
  if(action.type==='sell'){
@@ -38,7 +40,7 @@ export function tradeRoom(source:FairyRoomState,action:TradeAction,now:number):F
     if(product.kind!=='consumable'||product.effect!=='health')throw Error('使用できないアイテムです。');
     if(state.adventure)throw Error('帰還してから使ってください。');
     if(state.health>=100)throw Error('体力は満タンです。');
-    state.health=Math.min(100,state.health+product.amount);state.sleeping=state.health<=0;inventory[product.id]--;
+    state.health=Math.min(100,state.health+product.amount);reconcileRoomSleep(state,state.updatedAt);inventory[product.id]--;
     message=`${product.name}を使い、体力を回復しました。`;
    }
   }

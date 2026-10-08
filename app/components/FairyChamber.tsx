@@ -73,11 +73,13 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLe
   const closetUnlocked = !!wardrobe?.closetPurchased || !!source?.purchases?.includes("closet");
   const trade=useCallback(async(action:TradeAction)=>{const next=onTrade?await onTrade(action):await tradeFairyRoom(uid,action);setSaved(next);setNow(Date.now());return next;},[uid,onTrade]);
   // Project health as time passes; rewards/records are only displayed after a committed sync.
-  const health = source ? advanceRoom(source, now ?? source.updatedAt).health : 100;
-  const sleeping = health <= 0;
+  const projected = source ? advanceRoom(source, now ?? source.updatedAt) : undefined;
+  const health = projected?.health ?? 100;
+  const energy = projected?.energy ?? 100;
+  const sleeping = projected?.sleeping ?? false;
   const trip = source?.adventure;
   const remaining = trip ? Math.max(0, trip.returnsAt - (now ?? source!.updatedAt)) : 0;
-  const readyToLeave = !!source && health >= ROOM_RULES.adventureMinHealth && !trip;
+  const readyToLeave = !!source && health >= ROOM_RULES.adventureMinHealth && !trip && !sleeping;
   const sync = useCallback(async (areaId?: string) => {
     if (inFlight.current) return;
     inFlight.current = true;
@@ -133,7 +135,7 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLe
     kingHistory.current[pool] = entry.id;
     return entry;
   };
-  if (atelier) return <WardrobeStudio key={uid} uid={uid} initialMode={atelier} room={source} onTrade={trade} onClose={() => setAtelier(null)} />;
+  if (atelier && !sleeping && !trip) return <WardrobeStudio key={uid} uid={uid} initialMode={atelier} room={source} onTrade={trade} onClose={() => setAtelier(null)} />;
   if (kingRoom) return <FairyKingRoom draw={drawKingEntry} initialGreeting={kingGreeting} onLeave={() => {
     setKingRoom(false);
     requestAnimationFrame(() => kingEntrance.current?.focus({ preventScroll: true }));
@@ -151,18 +153,22 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLe
             <div className={styles.hearts} role="img" aria-label={`体力 ${health.toFixed(1)} / 100、ハート${(health / 20).toFixed(1)}個分`}>
               {Array.from({ length: 5 }, (_, index) => <span className={styles.heart} key={index} aria-hidden="true">♥<span style={{ clipPath: `inset(${(1 - heartFill(health, index)) * 100}% 0 0 0)` }}>♥</span></span>)}
             </div><small>{health.toFixed(1)} / 100</small>
-          </div><p className={styles.condition}><i data-sleeping={sleeping} />{source ? status : "お部屋を準備しています…"}</p>
+          </div>
+          <div className={styles.energyRow}><label htmlFor={`fairy-energy-${uid}`}>気力</label><meter id={`fairy-energy-${uid}`} min={0} max={100} value={energy} /><small>{energy.toFixed(1)} / 100</small></div>
+          <p className={styles.hint}>習慣1件で気力+5。気力が50を超えると体力が回復します。</p>
+          <p className={styles.condition}><i data-sleeping={sleeping} />{source ? status : "お部屋を準備しています…"}</p>
         </div>
-        <div className={styles.speech} role="status" aria-live="polite">{trip ? "いま、森の奥を探検しているよ。帰ったらお話を聞いてね！" : sleeping ? "すぅ、すぅ……。また一緒に、小さな一歩から。" : line}</div>
+        <div className={styles.speech} role="status" aria-live="polite">{sleeping ? "ふぁ……ちょっと疲れちゃった。少しだけ、ここでおやすみするね。" : trip ? "いま、森の奥を探検しているよ。帰ったらお話を聞いてね！" : line}</div>
         <div className={styles.characterStage} data-motion={trip ? "away" : sleeping ? "sleeping" : "idle"}>
-          {trip ? <div className={styles.away}><span aria-hidden="true">✧</span><p>森の奥へおでかけ中</p><small>{remaining > 0 ? `帰還まで 約${Math.ceil(remaining / 3600000)}時間` : "帰還しています。記録を確認中…"}</small></div> : <button type="button" className={styles.fairyButton} onClick={talk} aria-label={`${fairy.name || "妖精"}に話しかける`}><div style={{ width: "100%", maxWidth: 330, margin: "auto" }}><AvatarFigure avatar={closetUnlocked ? wardrobe?.equipped ?? DEFAULT : DEFAULT} adjustments={closetUnlocked ? wardrobe?.adjustments : undefined}/></div>{sleeping && <span className={styles.zzz}>Z z z</span>}</button>}
+          {trip ? <div className={styles.away}><img className={styles.adventuringFairy} src="/world/fairy-adventuring.png" alt="ただいま冒険中の看板" /><p>森の奥へおでかけ中</p><small>{remaining > 0 ? `帰還まで 約${Math.ceil(remaining / 3600000)}時間` : "帰還しています。記録を確認中…"}</small></div> : sleeping ? <img className={styles.hibernatingFairy} src="/world/fairy-hibernating.png" alt="雪柄のおふとんで冬眠している妖精" /> : <button type="button" className={styles.fairyButton} onClick={talk} aria-label={`${fairy.name || "妖精"}に話しかける`}><div style={{ width: "100%", maxWidth: 330, margin: "auto" }}><AvatarFigure avatar={closetUnlocked ? wardrobe?.equipped ?? DEFAULT : DEFAULT} adjustments={closetUnlocked ? wardrobe?.adjustments : undefined}/></div></button>}
         </div>
-        <p className={styles.touchHint}>{trip ? "帰還後、冒険の記録が届きます" : sleeping ? "習慣をひとつ再開すると、目を覚まします" : "妖精をタップして、おしゃべり"}</p>
+        <p className={styles.touchHint}>{trip ? "帰還後、冒険の記録が届きます" : sleeping ? "気力50超を維持し、体力も50を超えると目を覚まします" : "妖精をタップして、おしゃべり"}</p>
       </div>
       <nav className={styles.menu} aria-label="妖精の部屋メニュー"><p className={styles.menuHeading}>このお部屋でできること</p>
         {MENU.map(item => {
-          const disabled = item.id === "closet" && !closetUnlocked;
-          return <button type="button" key={item.id} ref={item.id === "council" ? kingEntrance : undefined} className={`${styles.plank} ${item.id === "adventure" ? styles.adventurePlank : ""}`} disabled={disabled} onClick={() => {
+          const blocked = (item.id === "shop" || item.id === "closet" || sleeping && item.id === "adventure") && (sleeping || !!trip);
+          const disabled = blocked || item.id === "closet" && !closetUnlocked;
+          return <button type="button" key={item.id} ref={item.id === "council" ? kingEntrance : undefined} className={`${styles.plank} ${item.id === "adventure" ? styles.adventurePlank : ""}`} disabled={disabled} data-blocked={blocked || undefined} onClick={() => {
             if (item.id === "closet") { setAtelier('closet'); return; }
             if (item.id === "shop") { setAtelier('shops'); return; }
             if (item.id === "council") {
@@ -171,7 +177,7 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLe
             }
             if (item.id === "ranking") setRanking("growth");
             setPanel(item.id);
-          }}><span className={styles.menuIcon} aria-hidden="true">{item.icon}</span><span><strong>{item.title}</strong><small>{item.id === "closet" && !closetUnlocked ? "ショップでクローゼットを購入して解放" : item.detail}</small></span><span className={styles.arrow} aria-hidden="true">{disabled ? "—" : "›"}</span></button>;
+          }}><span className={styles.menuIcon} aria-hidden="true">{item.icon}</span><span><strong>{item.title}</strong><small>{item.id === "closet" && !closetUnlocked ? "ショップでクローゼットを購入して解放" : item.detail}</small></span>{blocked ? <span className={styles.activityBadge} data-state={sleeping ? "sleeping" : "adventure"}>{sleeping ? "💤冬眠中" : "冒険中"}</span> : <span className={styles.arrow} aria-hidden="true">{disabled ? "—" : "›"}</span>}</button>;
         })}
         <p className={styles.menuFoot}>習慣を続ける。妖精が育つ。世界が広がる。</p>
       </nav>
@@ -200,7 +206,7 @@ export default function FairyChamber({ uid, fairy, room, totalPoints, attainedLe
           {ADVENTURE_AREAS.map(area => <div className={styles.areaCard} key={area.id}><span className={styles.eyebrow}>FIRST JOURNEY</span><h4>🌿 {area.name}</h4><p>木漏れ日の向こうに、まだ知らない景色が待っています。</p><dl><div><dt>冒険の時間</dt><dd>約24時間</dd></div><div><dt>出発に必要な体力</dt><dd>ハート4個以上</dd></div><div><dt>出発時の消費</dt><dd>ハート1個</dd></div><div><dt>帰還のおみやげ</dt><dd>{area.minReward}〜{area.maxReward} AP</dd></div></dl>
             {trip ? <div role="status"><p>森の奥を冒険しています。</p><p>帰還予定：{new Date(trip.returnsAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}（日本時間）</p>{remaining === 0 && <button type="button" className={styles.primary} disabled={busy} onClick={() => void sync()}>帰還を確認する</button>}</div> : <><button type="button" className={styles.primary} disabled={busy || !readyToLeave || !!error} onClick={() => void sync(area.id)}>{busy ? "準備しています…" : "森の奥へ送り出す"}</button>{!readyToLeave && source && <p className={styles.hint}>今はひとやすみ。習慣を続けて、ハート4個以上に回復すると出発できます。</p>}</>}
           </div>)}
-          <p className={styles.hint}>体力は1日でハート約0.25個減り、今日の習慣1件につき約0.4個回復します。同じ習慣での回復は1日1回です。</p><p className={styles.hint}>湖・洞窟・地図・冒険アイテムは、今後のアップデートで。長い旅は、ここから始まります。</p>
+          <p className={styles.hint}>気力は7日で100減り、今日の習慣1件につき5回復します。同じ習慣での回復は1日1回です。体力は気力が50を超えると回復し、50以下では減少します（7日で100の速度）。体力5以下で冬眠します。冬眠中も気力50超で体力が回復し、気力と体力が両方50を超えると目覚めます。冬眠中は回復アイテムを使えません。</p><p className={styles.hint}>湖・洞窟・地図・冒険アイテムは、今後のアップデートで。長い旅は、ここから始まります。</p>
         </>}
         {panel === "name" && <form onSubmit={async event => {
           event.preventDefault(); if (inFlight.current) return; inFlight.current = true; setBusy(true); setError("");

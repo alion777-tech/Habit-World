@@ -5,6 +5,15 @@ const {PRODUCTS,BUYBACK}=loader.load('../lib/shopCatalog.ts');loader.restore();
 const now=Date.parse('2026-09-16T00:00:00Z');let serial=0;
 const trade=(r,a)=>tradeRoom(r,{...a,requestId:`test-${serial++}`},now);
 const initial=createRoom(now),trip=departAdventure(initial,now,'forest',.5),returned=advanceRoom(trip,now+86400000);
+for(const blocked of [{...initial,health:20,energy:40,sleeping:true},trip]){
+ const room={...blocked,gold:3000,materials:{'forest-herb':2},inventory:{'elf-potion':1,'dwarf-bag':1}};
+ const before=JSON.stringify(room);
+ for(const action of [{type:'buy',shop:'elf',productId:'elf-potion'},{type:'buy',shop:'fairy',productId:'closet'},{type:'sell',shop:'elf',materialId:'forest-herb',quantity:1},{type:'use',productId:'elf-potion'},{type:'equip',productId:'dwarf-bag'}]){
+  assert.throws(()=>trade(room,action),/冬眠中|冒険中/);
+  assert.equal(JSON.stringify(room),before,'blocked actions change neither balance nor inventory');
+ }
+}
+assert.throws(()=>departAdventure({...initial,health:80,energy:40,sleeping:true},now,'forest',.5),/冬眠中/);
 assert.ok(returned.materials['forest-herb']>0);
 assert.deepEqual(advanceRoom(returned,now+86400000).materials,returned.materials,'return cannot duplicate material reward');
 assert.deepEqual(initial.materials,{});
@@ -20,6 +29,12 @@ const sold=tradeRoom(returned,sale,now);assert.deepEqual(tradeRoom(sold,sale,now
 state=trade({...state,health:50},{type:'buy',shop:'elf',productId:'elf-potion'});
 assert.equal(state.gold,90+quantity*5);assert.equal(state.inventory['elf-potion'],1);
 state=trade(state,{type:'use',productId:'elf-potion'});assert.equal(state.health,70);assert.equal(state.inventory['elf-potion'],0);
+assert.equal(state.energy,returned.energy,'item use preserves energy');
+for (const energy of [40,100]) {
+ const sleepingItem={...initial,health:20,energy,sleeping:true,inventory:{'elf-potion':1}};
+ assert.throws(()=>trade(sleepingItem,{type:'use',productId:'elf-potion'}),/冬眠中/);
+ assert.equal(sleepingItem.health,20);assert.equal(sleepingItem.inventory['elf-potion'],1);
+}
 assert.throws(()=>trade(state,{type:'use',productId:'elf-potion'}));
 let geared=trade({...initial,gold:100},{type:'buy',shop:'dwarf',productId:'dwarf-bag'});
 const repeat=trade(geared,{type:'buy',shop:'dwarf',productId:'dwarf-bag'});assert.equal(repeat.gold,80);assert.equal(repeat.coins,undefined);

@@ -25,7 +25,7 @@ export default function FairyChamberPreview({ embedded = false, isDarkMode = fal
       {!embedded && <label>背景確認時刻（日本時間） <input type="time" value={localPreviewTime ?? ""} onInput={event => setLocalPreviewTime(event.currentTarget.value || null)} /></label>}
       {!embedded && <button onClick={() => setLocalPreviewTime(null)}>現在時刻に戻す</button>}
       <button onClick={() => { const next = { ...createRoom(Date.now(), "2026-09-12"), health: 73 }; current.current = next; setRoom(next); }}>体力73</button>
-      <button onClick={() => { const next = { ...createRoom(Date.now(), "2026-09-12"), health: 0, sleeping: true }; current.current = next; setRoom(next); }}>冬眠</button>
+      <button onClick={() => { const next = { ...createRoom(Date.now(), "2026-09-12"), health: 5, energy: 0, sleeping: true }; current.current = next; setRoom(next); }}>冬眠</button>
       <button onClick={() => { const next = recoverFromHabit(current.current, Date.now(), "2026-09-12", String(Date.now())); current.current = next; setRoom(next); }}>習慣で回復</button>
       <button onClick={() => { const next = createRoom(Date.now(), "2026-09-12"); current.current = next; setRoom(next); }}>満タンに戻す</button>
       <button onClick={() => { if (!current.current.adventure) return; const next = advanceRoom({ ...current.current, adventure: { ...current.current.adventure, returnsAt: Date.now() - 1 } }, Date.now()); current.current = next; setRoom(next); }}>冒険をすぐ帰還させる</button>
